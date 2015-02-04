@@ -1,6 +1,6 @@
 name = Custom Search Internationalization
 description = Provides Internationalization to Custom Search.
-core = 7.x
+backdrop = 1.x
 package = Search
 
 dependencies[] = custom_search
