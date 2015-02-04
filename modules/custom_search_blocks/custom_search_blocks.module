@@ -128,7 +128,7 @@ function custom_search_blocks_forms($form_id, $args) {
  */
 function custom_search_blocks_form($form, &$form_state, $delta) {
   $form['custom_search_blocks_form_' . $delta] = array(
-    '#type'           => 'textfield',
+    '#type'           => 'search',
     '#size'           => 15,
     '#default_value'  => '',
     '#attributes'     => array('title' => t('Enter the terms you wish to search for.')),
