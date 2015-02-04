@@ -598,7 +598,7 @@ function custom_search_init() {
  * Implements hook_theme().
  */
 function custom_search_theme() {
-  $path = drupal_get_path('module', 'custom_search') . '/theme';
+  $path = drupal_get_path('module', 'custom_search') . '/templates';
   $custom_search_theme_array = array(
     'custom_search_javascript' => array(
       'variables' => array(),
