@@ -14,7 +14,7 @@
   endforeach;
 
   // Add table javascript.
-  drupal_add_js('misc/tableheader.js');
+  drupal_add_js('core/misc/tableheader.js');
   drupal_add_js(drupal_get_path('module', 'custom_search') . '/js/custom_search_sort.js');
   foreach ($element_regions as $region => $title) :
     drupal_add_tabledrag('elements', 'match', 'sibling', 'region-select', 'region-select-' . $region, NULL, FALSE);
