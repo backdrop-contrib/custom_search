@@ -5,6 +5,12 @@ This module alters the default search box in many ways. If you need to have
 options available like in advanced search, but directly in the search box, this
 module is for you.
 
+Backdrop port status
+--------------------
+
+At this point, this is a basic port.
+Config system conversion is on the way.
+
 Basic options
 -------------
 
