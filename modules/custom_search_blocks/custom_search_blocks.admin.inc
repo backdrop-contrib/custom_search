@@ -5,18 +5,6 @@
  * Admin settings for custom search
  */
 
-/**
- * Implements hook_help().
- */
-function custom_search_blocks_help($path, $arg) {
-  switch ($path) {
-    case 'admin/config/search/custom_search/blocks':
-      $output = t('If you want custom search blocks, enable them here. Then go to the <a href="@link">block page</a> to place them in a region.', array('@link' => url('admin/build/block')));
-      break;
-  }
-  return $output;
-}
-
 function custom_search_blocks_admin() {
   $form['custom_search_blocks_number'] = array(
     '#type'           => 'textfield',
