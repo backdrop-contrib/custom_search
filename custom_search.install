@@ -13,20 +13,18 @@ function custom_search_install() {
     ->fields(array('weight' => 100))
     ->condition('name', 'custom_search')
     ->execute();
-}
 
-/**
- * Implements hook_uninstall().
- */
-function custom_search_uninstall() {
-  db_delete('variable')
-    ->condition('name', 'custom_search_%', 'LIKE')
-    ->execute();
-}
-
-/**
- * Implements hook_enable().
- */
-function custom_search_enable() {
-  drupal_set_message(t('Custom Search enabled. Don\'t forget to <a href="@link">set permissions</a>.', array('@link' => url('admin/config/people/permissions', array('fragment' => 'module-custom_search')))));
+  // Create dynamic settings.
+  $config = config('custom_search.settings');
+  
+  $types = node_type_get_names();
+  foreach ($types as $type => $name) {
+    $config->set('advanced_type_' . $type . '_display', TRUE);
+  }
+  
+  foreach (language_list('language') as $key => $entity) {
+    $config->set('advanced_language_' . $key . '_display', TRUE);
+  }
+  
+  $config->save();
 }

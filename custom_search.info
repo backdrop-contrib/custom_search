@@ -4,5 +4,6 @@ backdrop = 1.x
 package = Search
 
 dependencies[] = search
+dependencies[] = block
 
 configure = admin/config/search/custom_search

@@ -2,99 +2,55 @@
 
 /**
  * @file
- * Admin settings for custom search
+ * Admin settings for custom search.
  */
 
-/**
- * General settings.
- */
-function custom_search_admin() {
-  // Basic settings.
-  $form = _custom_search_default_admin_form();
-  // Custom search paths.
-  $form = array_merge($form, _custom_search_custom_paths_admin_form());
-  // Ordering.
-  $form = array_merge($form, _custom_search_ordering_admin_form());
+function custom_search_admin_form() {
 
-  $form['#attributes'] = array('enctype' => 'multipart/form-data');
-  $form['#submit'][] = 'custom_search_admin_submit';
-  return system_settings_form($form);
-}
+  $config = config('custom_search.settings');
 
-/**
- * Submit callback.
- */
-function custom_search_admin_submit($form, &$form_state) {
-  // Saves the ordering.
-  foreach ($form_state['values']['custom_search_order'] as $key => $data) {
-    variable_set('custom_search_' . $key . '_weight', $data['sort']);
-    variable_set('custom_search_' . $key . '_region', $data['region']);
-  }
-
-  // Uploads an image.
-  $directory_path = 'public://custom_search';
-  file_prepare_directory($directory_path, FILE_CREATE_DIRECTORY);
-  // Check for a new uploaded image.
-  if ($file = file_save_upload('custom_search_image', array('file_validate_is_image' => array()))) {
-    if ($filepath = file_unmanaged_copy($file->uri, $directory_path)) {
-      $form_state['values']['custom_search_image_path'] = $filepath;
-    }
-  }
-}
-
-/**
- * Content settings.
- */
-function custom_search_content_admin() {
-  return system_settings_form(_custom_search_content_admin_form());
-}
-
-/**
- * Results page settings.
- */
-function custom_search_results_admin() {
-  $form['custom_search_target'] = array(
+  $form['target'] = array(
     '#type'     => 'select',
     '#title'    => t('Results page opens in'),
     '#options'  => array(
       '_self'   => t('the same window'),
       '_blank'  => t('a new window'),
     ),
-    '#default_value'  => variable_get('custom_search_target', '_self'),
+    '#default_value'  => $config->get('target'),
   );
 
   $form['search_form'] = array(
     '#type'   => 'fieldset',
     '#title'  => t('Search form'),
   );
-  $form['search_form']['custom_search_results_search'] = array(
+  $form['search_form']['results_search'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Display basic search'),
-    '#default_value'  => variable_get('custom_search_results_search', TRUE),
+    '#default_value'  => $config->get('results_search'),
   );
-  $form['search_form']['custom_search_results_advanced_search'] = array(
+  $form['search_form']['results_advanced_search'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Display advanced search'),
-    '#default_value'  => variable_get('custom_search_results_advanced_search', TRUE),
+    '#default_value'  => $config->get('results_advanced_search'),
   );
   $form['search_form']['advanced'] = array(
     '#type'         => 'fieldset',
     '#title'        => t('Advanced search'),
     '#states' => array(
       'visible' => array(
-        ':input[name="custom_search_results_advanced_search"]' => array('checked' => TRUE),
+        ':input[name="results_advanced_search"]' => array('checked' => TRUE),
       ),
     ),
   );
-  $form['search_form']['advanced']['custom_search_results_advanced_search_collapsible'] = array(
+  $form['search_form']['advanced']['results_advanced_search_collapsible'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Collapsible'),
-    '#default_value'  => variable_get('custom_search_results_advanced_search_collapsible', TRUE),
+    '#default_value'  => $config->get('results_advanced_search_collapsible'),
   );
-  $form['search_form']['advanced']['custom_search_results_advanced_search_collapsed'] = array(
+  $form['search_form']['advanced']['results_advanced_search_collapsed'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Collapsed'),
-    '#default_value'  => variable_get('custom_search_results_advanced_search_collapsed', TRUE),
+    '#default_value'  => $config->get('results_advanced_search_collapsed'),
   );
   $form['search_form']['advanced']['criteria'] = array(
     '#type'         => 'fieldset',
@@ -103,20 +59,20 @@ function custom_search_results_admin() {
     '#collapsible'  => TRUE,
     '#collapsed'    => TRUE,
   );
-  $form['search_form']['advanced']['criteria']['custom_search_advanced_or_display'] = array(
+  $form['search_form']['advanced']['criteria']['advanced_or_display'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Or'),
-    '#default_value'  => variable_get('custom_search_advanced_or_display', TRUE),
+    '#default_value'  => $config->get('advanced_or_display'),
   );
-  $form['search_form']['advanced']['criteria']['custom_search_advanced_phrase_display'] = array(
+  $form['search_form']['advanced']['criteria']['advanced_phrase_display'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Phrase'),
-    '#default_value'  => variable_get('custom_search_advanced_phrase_display', TRUE),
+    '#default_value'  => $config->get('advanced_phrase_display'),
   );
-  $form['search_form']['advanced']['criteria']['custom_search_advanced_negative_display'] = array(
+  $form['search_form']['advanced']['criteria']['advanced_negative_display'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Negative'),
-    '#default_value'  => variable_get('custom_search_advanced_negative_display', TRUE),
+    '#default_value'  => $config->get('advanced_negative_display'),
   );
   $form['search_form']['advanced']['types'] = array(
     '#type'         => 'fieldset',
@@ -127,10 +83,10 @@ function custom_search_results_admin() {
   );
   $options = node_type_get_names();
   foreach ($options as $type => $name) {
-    $form['search_form']['advanced']['types']['custom_search_advanced_type_' . $type . '_display'] = array(
+    $form['search_form']['advanced']['types']['advanced_type_' . $type . '_display'] = array(
       '#type'           => 'checkbox',
       '#title'          => $name,
-      '#default_value'  => variable_get('custom_search_advanced_type_' . $type . '_display', TRUE),
+      '#default_value'  => $config->get('advanced_type_' . $type . '_display', TRUE),
     );
   }
 
@@ -150,10 +106,10 @@ function custom_search_results_admin() {
       '#collapsed'    => TRUE,
     );
     foreach ($language_options as $key => $name) {
-      $form['search_form']['advanced']['languages']['custom_search_advanced_language_' . $key . '_display'] = array(
+      $form['search_form']['advanced']['languages']['advanced_language_' . $key . '_display'] = array(
         '#type'           => 'checkbox',
         '#title'          => $name,
-        '#default_value'  => variable_get('custom_search_advanced_language_' . $key . '_display', TRUE),
+        '#default_value'  => $config->get('advanced_language_' . $key . '_display', TRUE),
       );
     }
   }
@@ -163,26 +119,26 @@ function custom_search_results_admin() {
     '#title'        => t('Results'),
     '#description'  => t('Select data to display below each result.'),
   );
-  $form['results']['custom_search_results_info_type'] = array(
+  $form['results']['results_info_type'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Content type'),
-    '#default_value'  => variable_get('custom_search_results_info_type', TRUE),
+    '#default_value'  => $config->get('results_info_type', TRUE),
   );
-  $form['results']['custom_search_results_info_user'] = array(
+  $form['results']['results_info_user'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('User'),
-    '#default_value'  => variable_get('custom_search_results_info_user', TRUE),
+    '#default_value'  => $config->get('results_info_user', TRUE),
   );
-  $form['results']['custom_search_results_info_date'] = array(
+  $form['results']['results_info_date'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Date'),
-    '#default_value'  => variable_get('custom_search_results_info_date', TRUE),
+    '#default_value'  => $config->get('results_info_date', TRUE),
   );
   if (module_exists('comment')) {
-    $form['results']['custom_search_results_info_comment'] = array(
+    $form['results']['results_info_comment'] = array(
       '#type'           => 'checkbox',
       '#title'          => t('Comments'),
-      '#default_value'  => variable_get('custom_search_results_info_comment', TRUE),
+      '#default_value'  => $config->get('results_info_comment', TRUE),
     );
   }
 
@@ -191,7 +147,7 @@ function custom_search_results_admin() {
     '#title'        => t('Filter'),
     '#description'  => t('Add links to filter the results by content type.'),
   );
-  $form['filter']['custom_search_filter'] = array(
+  $form['filter']['filter'] = array(
     '#type'           => 'select',
     '#title'          => t('Position'),
     '#options'        => array(
@@ -199,19 +155,58 @@ function custom_search_results_admin() {
       'above'     => t('Above results'),
       'below'     => t('Below results'),
     ),
-    '#default_value'  => variable_get('custom_search_filter', 'disabled'),
+    '#default_value'  => $config->get('filter', 'disabled'),
   );
-  $form['filter']['custom_search_filter_label'] = array(
+  $form['filter']['filter_label'] = array(
     '#type'           => 'textfield',
     '#title'          => t('Label text'),
-    '#default_value'  => variable_get('custom_search_filter_label', CUSTOM_SEARCH_FILTER_LABEL_DEFAULT),
+    '#default_value'  => $config->get('filter_label'),
     '#description'    => t('Enter the label text for the list. The default value is "!default".', array('!default' => CUSTOM_SEARCH_FILTER_LABEL_DEFAULT)),
     '#states' => array(
       'invisible' => array(
-        ':input[name="custom_search_filter"]' => array('value' => 'disabled'),
+        ':input[name="filter"]' => array('value' => 'disabled'),
       ),
     ),
   );
 
-  return system_settings_form($form);
+  $form['actions']['#type'] = 'actions';
+  $form['actions']['submit'] = array(
+    '#type'   => 'submit',
+    '#value'  => t('Save configuration'),
+  );
+
+  return $form;
+}
+
+/**
+ * Submit handler for custom_search_admin_form_submit().
+ */
+function custom_search_admin_form_submit($form, &$form_state) {
+  $config = config('custom_search.settings');
+
+  $config->set('target', $form_state['values']['target']);
+  $config->set('results_search', $form_state['values']['results_search']);
+  $config->set('results_advanced_search', $form_state['values']['results_advanced_search']);
+  $config->set('results_advanced_search_collapsible', $form_state['values']['results_advanced_search_collapsible']);
+  $config->set('results_advanced_search_collapsed', $form_state['values']['results_advanced_search_collapsed']);
+  $config->set('advanced_or_display', $form_state['values']['advanced_or_display']);
+  $config->set('advanced_phrase_display', $form_state['values']['advanced_phrase_display']);
+  $config->set('advanced_negative_display', $form_state['values']['advanced_negative_display']);
+  $types = node_type_get_names();
+  foreach ($types as $type => $name) {
+    $config->set('advanced_type_' . $type . '_display', $form_state['values']['advanced_type_' . $type . '_display']);
+  }
+  foreach (language_list('language') as $key => $entity) {
+    $config->set('advanced_language_' . $key . '_display', $form_state['values']['advanced_language_' . $key . '_display']);
+  }
+  $config->set('results_info_type', $form_state['values']['results_info_type']);
+  $config->set('results_info_user', $form_state['values']['results_info_user']);
+  $config->set('results_info_date', $form_state['values']['results_info_date']);
+  $config->set('results_info_comment', $form_state['values']['results_info_comment']);
+  $config->set('filter', $form_state['values']['filter']);
+  $config->set('filter_label', $form_state['values']['filter_label']);
+
+  $config->save();
+
+  backdrop_set_message(t('The configuration options have been saved.'));
 }

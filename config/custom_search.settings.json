@@ -1,0 +1,17 @@
+{
+    "_config_name": "custom_search.settings",
+    "target": "_self",
+    "results_search": true,
+    "results_advanced_search": true,
+    "results_advanced_search_collapsible": true,
+    "results_advanced_search_collapsed": true,
+    "advanced_or_display": true,
+    "advanced_phrase_display": true,
+    "advanced_negative_display": true,
+    "results_info_type": false,
+    "results_info_user": true,
+    "results_info_date": true,
+    "results_info_comment": true,
+    "filter": "disabled",
+    "filter_label": "Filter the results"
+}

@@ -31,41 +31,27 @@ module_load_include('inc', 'custom_search', 'includes/luceneapi_node');
 module_load_include('inc', 'custom_search', 'includes/search_api');
 
 /**
+* Implements hook_config_info().
+*/
+function custom_search_config_info() {
+  $prefixes['custom_search.settings'] = array(
+    'label' => t('Main settings'),
+    'group' => t('Custom Search'),
+  );
+  return $prefixes;
+}
+
+/**
  * Implements hook_menu().
  */
 function custom_search_menu() {
   $items['admin/config/search/custom_search'] = array(
     'title'             => 'Custom Search',
-    'description'       => 'Customize the default search, change labels, default texts, ordering, and display content types and taxonomy selectors.',
+    'description'       => 'Customize the default search behaviour.',
     'page callback'     => 'drupal_get_form',
-    'page arguments'    => array('custom_search_admin'),
+    'page arguments'    => array('custom_search_admin_form'),
     'access arguments'  => array('administer custom search'),
     'file'              => 'custom_search.admin.inc',
-  );
-  $items['admin/config/search/custom_search/settings'] = array(
-    'title'             => 'Settings',
-    'description'       => 'Change the labels, the default texts and the ordering of elements.',
-    'access arguments'  => array('administer custom search'),
-    'type'              => MENU_DEFAULT_LOCAL_TASK,
-    'weight'            => 0,
-  );
-  $items['admin/config/search/custom_search/content'] = array(
-    'title'             => 'Content',
-    'description'       => 'Select the content types to present as search options in the search block.',
-    'page arguments'    => array('custom_search_content_admin'),
-    'access arguments'  => array('administer custom search'),
-    'file'              => 'custom_search.admin.inc',
-    'type'              => MENU_LOCAL_TASK,
-    'weight'            => 1,
-  );
-  $items['admin/config/search/custom_search/results'] = array(
-    'title'             => 'Results page',
-    'description'       => 'Customize the search results page.',
-    'page arguments'    => array('custom_search_results_admin'),
-    'access arguments'  => array('administer custom search'),
-    'file'              => 'custom_search.admin.inc',
-    'type'              => MENU_LOCAL_TASK,
-    'weight'            => 4,
   );
   return $items;
 }
@@ -79,51 +65,675 @@ function custom_search_permission() {
       'title'       => t('Administer custom search'),
       'description' => t('Allow users to administer custom search settings'),
     ),
-    'use custom search' => array(
-      'title'       => t('Use custom search'),
-      'description' => t('Allow users to use custom search'),
+  );
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function custom_search_block_info() {
+  $blocks['custom-search'] = array(
+    'info'        => t('Custom Search form'),
+    'description' => t('The search form for searching site content, with customized labels and options'),
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_node_type_insert().
+ */
+function custom_search_node_type_insert($info) {
+  config_set('custom_search.settings', 'advanced_type_' . $info->type . '_display', TRUE);
+}
+
+/**
+ * Callback to languages creation.
+ */
+function custom_search_language_add($form, &$form_state) {
+  if (empty($form_state['values']['predefined_langcode']) || $form_state['values']['predefined_langcode'] == 'custom') {
+    $langcode = $form_state['values']['langcode'];
+  }
+  else {
+    $langcode = $form_state['values']['predefined_langcode'];
+  }
+  config_set('custom_search.settings', 'advanced_language_' . $langcode . '_display', TRUE);
+}
+
+/**
+ * Implements hook_block_configure().
+ */
+function custom_search_block_configure($delta, $settings) {
+  drupal_add_css(drupal_get_path('module', 'custom_search') . '/custom_search.css');
+
+  $settings += _custom_search_default_block_settings();
+
+  // Labels & default text.
+  $form['search_box'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Search box'),
+    '#collapsible'  => TRUE,
+    '#collapsed'    => TRUE,
+  );
+  $form['search_box']['label_visibility'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Display label'),
+    '#default_value'  => $settings['search_box']['label_visibility'],
+  );
+  $form['search_box']['label'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Search box label'),
+    '#default_value'  => $settings['search_box']['label'],
+    '#description'    => t('Enter the label text for the search box. The default value is "!default".', array('!default' => CUSTOM_SEARCH_LABEL_DEFAULT)),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="block_settings[search_box][label_visibility]"]' => array('checked' => TRUE),
+      ),
     ),
   );
+  $form['search_box']['text'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Search box placeholder text'),
+    '#default_value'  => $settings['search_box']['text'],
+    '#description'    => t('This will change the default text inside the search form. This is the <a href="http://www.w3schools.com/tags/att_input_placeholder.asp" target="_blank">placeholder</a> attribute for the TextField. Leave blank for no text. This field is blank by default.'),
+  );
+  $form['search_box']['hint_text'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Search box hint text'),
+    '#default_value'  => $settings['search_box']['hint_text'],
+    '#description'    => t('Enter the text that will be displayed when hovering the input field (HTML <em>title</em> attritube).'),
+  );
+  $form['search_box']['size'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Search box size'),
+    '#size'           => 3,
+    '#default_value'  => $settings['search_box']['size'],
+    '#description'    => t('The default value is "!default".', array('!default' => CUSTOM_SEARCH_SIZE_DEFAULT)),
+  );
+  $form['search_box']['max_length'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Search box maximum length'),
+    '#size'           => 3,
+    '#default_value'  => $settings['search_box']['max_length'],
+    '#description'    => t('The default value is "!default".', array('!default' => CUSTOM_SEARCH_MAX_LENGTH_DEFAULT)),
+    '#required'       => TRUE,
+  );
+
+  // Content.
+  $form['content'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Content'),
+    '#collapsible'  => TRUE,
+    '#collapsed'    => TRUE,
+  );
+  $form['content']['selector'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Content selector'),
+    '#description'  => t('Select the search types to present as search options in the search block. If none is selected, no selector will be displayed. <strong>Note</strong>: if there\'s only one type checked, the selector won\'t be displayed BUT only this type will be searched.'),
+  );
+  $form['content']['selector']['node_types'] = array(
+    '#type'           => 'checkboxes',
+    '#title'          => t('Content types'),
+    '#default_value'  => $settings['content']['selector']['node_types'],
+    '#options'        => node_type_get_names(),
+  );
+  // Other searches.
+  $options = array();
+  foreach (module_implements('search_info') as $module) {
+    if ($module != 'node' && $name = module_invoke($module, 'search_info')) {
+      $options[$module] = $name['title'];
+    }
+  }
+  if (count($options)) {
+    $form['content']['selector']['other'] = array(
+      '#type'           => 'checkboxes',
+      '#title'          => t('Other searches'),
+      '#default_value'  => $settings['content']['selector']['other'],
+      '#options'        => $options,
+    );
+  }
+  $form['content']['selector']['selector'] = array(
+    '#type'           => 'select',
+    '#title'          => t('Selector type'),
+    '#options'        => array(
+      'select'          => t('Drop-down list'),
+      'selectmultiple'  => t('Drop-down list with multiple choices'),
+      'radios'          => t('Radio buttons'),
+      'checkboxes'      => t('Checkboxes'),
+    ),
+    '#description'    => t('Choose which selector type to use. Note: content types and other searches cannot be combined in a single search.'),
+    '#default_value'  => $settings['content']['selector']['selector'],
+  );
+  $form['content']['selector']['label_visibility'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Display label'),
+    '#default_value'  => $settings['content']['selector']['label_visibility'],
+  );
+  $form['content']['selector']['label'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Label text'),
+    '#default_value'  => $settings['content']['selector']['label'],
+    '#description'    => t('Enter the label text for the selector. The default value is "!default".', array('!default' => CUSTOM_SEARCH_TYPE_SELECTOR_LABEL_DEFAULT)),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="block_settings[content][selector][label_visibility]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['content']['selector']['any'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('-Any-'),
+  );
+  $form['content']['selector']['any']['text'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('-Any content type- text'),
+    '#default_value'  => $settings['content']['selector']['any']['text'],
+    '#required'       => TRUE,
+    '#description'    => t('Enter the text for "any content type" choice. The default value is "!default".', array('!default' => CUSTOM_SEARCH_ALL_TEXT_DEFAULT)),
+  );
+  $form['content']['selector']['any']['restricts'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Choosing -Any- restricts the search to the selected content types.'),
+    '#default_value'  => $settings['content']['selector']['any']['restricts'],
+    '#description'    => t('If not checked, choosing -Any- will search in all content types.'),
+  );
+  $form['content']['selector']['any']['force'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Force -Any- to be displayed.'),
+    '#default_value'  => $settings['content']['selector']['any']['force'],
+    '#description'    => t('When only one content type is selected, the default behaviour is to hide the selector. If you need the -Any- option to be displayed, check this.'),
+  );
+
+  $form['content']['node_types_excluded'] = array(
+    '#type'           => 'checkboxes',
+    '#title'          => t('Content exclusion'),
+    '#description'    => t("Select the content types you don't want to be displayed as results.<br/><strong>Notice</strong>: content exclusion only works with the core Search module."),
+    '#default_value'  => $settings['content']['node_types_excluded'],
+    '#options'        => node_type_get_names(),
+  );
+
+  // Search API.
+  if (module_exists('search_api_page')) {
+    $search_api_pages = search_api_page_load_multiple();
+    $options[0] = t('None');
+    foreach ($search_api_pages as $page) {
+      $options[$page->id] = $page->name;
+    }
+    $form['searchapi'] = array(
+      '#type'         => 'fieldset',
+      '#title'        => t('Search API'),
+      '#collapsible'  => TRUE,
+      '#collapsed'    => TRUE,
+    );
+    $form['searchapi']['page'] = array(
+      '#type'           => 'select',
+      '#title'          => t('Search API Page to use'),
+      '#options'        => $options,
+      '#default_value'  => $settings['searchapi']['page'],
+    );
+  }
+
+  // Criteria.
+  $form['criteria'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Advanced search criteria'),
+    '#collapsible'  => TRUE,
+    '#collapsed'    => TRUE,
+  );
+  $form['criteria']['or'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Or'),
+  );
+  $form['criteria']['or']['display'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Display'),
+    '#default_value'  => $settings['criteria']['or']['display'],
+  );
+  $form['criteria']['or']['label'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Label'),
+    '#default_value'  => $settings['criteria']['or']['label'],
+    '#description'    => t('Enter the label text for this field. The default value is "!default".', array('!default' => CUSTOM_SEARCH_CRITERIA_OR_LABEL_DEFAULT)),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="block_settings[criteria][or][display]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['criteria']['phrase'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Phrase'),
+  );
+  $form['criteria']['phrase']['display'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Display'),
+    '#default_value'  => $settings['criteria']['phrase']['display'],
+  );
+  $form['criteria']['phrase']['label'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Label'),
+    '#default_value'  => $settings['criteria']['phrase']['label'],
+    '#description'    => t('Enter the label text for this field. The default value is "!default".', array('!default' => CUSTOM_SEARCH_CRITERIA_PHRASE_LABEL_DEFAULT)),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="block_settings[criteria][phrase][display]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['criteria']['negative'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Negative'),
+  );
+  $form['criteria']['negative']['display'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Display'),
+    '#default_value'  => $settings['criteria']['negative']['display'],
+  );
+  $form['criteria']['negative']['label'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Label'),
+    '#default_value'  => $settings['criteria']['negative']['label'],
+    '#description'    => t('Enter the label text for this field. The default value is "!default".', array('!default' => CUSTOM_SEARCH_CRITERIA_NEGATIVE_LABEL_DEFAULT)),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="block_settings[criteria][negative][display]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+
+  // Custom paths.
+  $form['paths'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Custom search paths'),
+    '#collapsed'    => TRUE,
+    '#collapsible'  => TRUE,
+  );
+  $form['paths']['selector'] = array(
+    '#type'           => 'select',
+    '#title'          => t('Selector type'),
+    '#options'        => array(
+      'select'          => t('Drop-down list'),
+      'radios'          => t('Radio buttons'),
+    ),
+    '#description'    => t('Choose which selector type to use.'),
+    '#default_value'  => $settings['paths']['selector'],
+  );
+  $form['paths']['label_visibility'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Display label'),
+    '#default_value'  => $settings['paths']['label_visibility'],
+  );
+  $form['paths']['label'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Label text'),
+    '#default_value'  => $settings['paths']['label'],
+    '#description'    => t('Enter the label text for the selector. The default value is "!default".', array('!default' => CUSTOM_SEARCH_PATHS_SELECTOR_LABEL_DEFAULT)),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="block_settings[paths][label_visibility]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['paths']['paths'] = array(
+    '#type'           => 'textarea',
+    '#title'          => t('Paths'),
+    '#default_value'  => $settings['paths']['paths'],
+    '#rows'           => 3,
+    '#description'    => t('If you want to use custom search paths, enter them here in the form <em>path</em>|<em>label</em>, one per line (if only one path is specified, the selector will be hidden). The [key] token will be replaced by what is entered in the search box. Ie: mysearch/[key]|My custom search label. The [current_path] token can be used to use the current URL path of the page beeing viewed.'),
+  );
+
+  // Submit button.
+  $form['submit_button'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Submit button'),
+    '#collapsible'  => TRUE,
+    '#collapsed'    => TRUE,
+  );
+  $form['submit_button']['text'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Submit button text'),
+    '#default_value'  => $settings['submit_button']['text'],
+    '#description'    => t('Enter the text for the submit button. Leave blank to hide it. The default value is "!default".', array('!default' => CUSTOM_SEARCH_SUBMIT_TEXT_DEFAULT)),
+  );
+  $form['submit_button']['image_path'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Submit image path'),
+    '#description'    => t('The path to the file you would like to use as submit button instead of the default text button.'),
+    '#default_value'  => $settings['submit_button']['image_path'],
+  );
+  $form['submit_button']['image'] = array(
+    '#type'           => 'file',
+    '#title'          => t('Submit image'),
+    '#description'    => t("If you don't have direct file access to the server, use this field to upload your image."),
+  );
+
+  // Ordering.
+  $form['order'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Elements ordering'),
+    '#description'  => t('Order the form elements as you want them to be displayed. If you put elements in the Popup section, they will only appear when the search field is clicked.'),
+  );
+  $form['order']['elements'] = array(
+    '#tree'   => TRUE,
+    '#theme'  => 'custom_search_sort_form',
+  );
+
+  $elements = array(
+    'search_box'        => t('Search box'),
+    'content_types'     => t('Content types'),
+    'criteria_or'       => t('Advanced search criterion: Or'),
+    'criteria_phrase'   => t('Advanced search criterion: Phrase'),
+    'criteria_negative' => t('Advanced search criterion: Negative'),
+    'paths'             => t('Custom search paths'),
+    'submit'            => t('Submit button'),
+  );
+
+  foreach ($elements as $element => $title) {
+    $form['order']['elements'][$element] = array(
+      '#title'  => $title,
+      '#weight' => $settings['order']['elements'][$element]['sort'],
+    );
+    $form['order']['elements'][$element]['sort'] = array(
+      '#type'           => 'weight',
+      '#default_value'  => $settings['order']['elements'][$element]['sort'],
+      '#attributes'     => array(
+        'class' => array(
+          'sort-select',
+          'sort-select-' . $settings['order']['elements'][$element]['region'],
+        ),
+      ),
+    );
+    $form['order']['elements'][$element]['region'] = array(
+      '#type'           => 'select',
+      '#options'        => array(
+        'block' => t('Block'),
+        'popup' => t('Popup'),
+      ),
+      '#default_value'  => $settings['order']['elements'][$element]['region'],
+      '#attributes'     => array(
+        'class' => array(
+          'region-select',
+          'region-select-' . $settings['order']['elements'][$element]['region'],
+        ),
+      ),
+    );
+  }
+
+  return $form;
+}
+
+/**
+ * Block config validation.
+ */
+function custom_search_block_validation($form, &$form_state) {
+  // Check for a new uploaded image.
+  if ($file = file_save_upload('block_settings_submit_button_image', array('file_validate_is_image' => array()))) {
+    $directory_path = 'public://custom_search';
+    file_prepare_directory($directory_path, FILE_CREATE_DIRECTORY);
+    if ($filepath = file_unmanaged_copy($file->uri, $directory_path)) {
+      $form_state['values']['block_settings']['submit_button']['image_path'] = $filepath;
+    }
+  }
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function custom_search_block_view($delta = '', $settings = array()) {
+  if (user_access('search content')) {
+    $block['subject'] = "Custom Search";
+    $block['content'] = backdrop_get_form('custom_search_block_form', $settings);
+    return $block;
+  }
+}
+
+/**
+ * Form builder; Output a search form for the search block's search box.
+ *
+ * @ingroup forms
+ * @see search_box_form_submit()
+ */
+function custom_search_block_form($form, &$form_state, $settings) {
+  drupal_add_css(drupal_get_path('module', 'custom_search') . '/custom_search.css');
+
+  // Search box.
+  $form['keys'] = array(
+    '#type'           => 'search',
+    '#title'          => $settings['search_box']['label'],
+    '#title_display'  => !$settings['search_box']['label_visibility'] ? 'invisible' : 'before',
+    '#size'           => $settings['search_box']['size'],
+    '#maxlength'      => $settings['search_box']['max_length'],
+    '#default_value'  => '',
+    '#attributes'     => array(
+      'title'       => $settings['search_box']['hint_text'],
+      'class'       => array('custom-search-box'),
+      'placeholder' => $settings['search_box']['text'],
+    ),
+    '#weight'         => $settings['order']['elements']['search_box']['sort'],
+  );
+
+  // Content type & other searches.
+  // Content types.
+  $toptions = array();
+  $types = array_keys(array_filter($settings['content']['selector']['node_types']));
+  if (count($types)) {
+    $names = node_type_get_names();
+    if (count($types) > 1 || $settings['content']['selector']['any']['force']) {
+      $toptions['c-all'] = $settings['content']['selector']['any']['text'];
+    }
+    foreach ($types as $type) {
+      $toptions['c-' . $type] = $names[$type];
+    }
+  }
+  $options = array();
+  // Other searches.
+  $others = array_keys(array_filter($settings['content']['selector']['other']));
+  // If content types and other searches are combined, make an optgroup.
+  if (count($others) && count($toptions) && $settings['content']['selector']['selector'] == 'select') {
+    $content = module_invoke('node', 'search_info');
+    $options[$content['title']] = $toptions;
+  }
+  else {
+    $options = $toptions;
+  }
+  foreach (module_implements('search_info') as $module) {
+    if ($module != 'node' && $name = module_invoke($module, 'search_info')) {
+      if (in_array($module, $others)) {
+        $options['o-' . $module] = t($name['title']);
+      }
+    }
+  }
+  if (count($options)) {
+    $selector_type = $settings['content']['selector']['selector'];
+    if ($selector_type == 'selectmultiple') {
+      $selector_type = 'select';
+      $multiple = TRUE;
+    }
+    else {
+      $multiple = FALSE;
+    }
+    $form['types'] = array(
+      '#type'           => $selector_type,
+      '#multiple'       => $multiple,
+      '#title'          => $settings['content']['selector']['label'],
+      '#options'        => $options,
+      '#default_value'  => (($selector_type == 'checkboxes') ? array('c-all') : 'c-all'),
+      '#attributes'     => array('class' => array('custom-search-selector', 'custom-search-types')),
+      '#weight'         => $settings['order']['elements']['content_types']['sort'],
+      '#validated'      => TRUE,
+    );
+
+    // If there's only one type, hide the selector.
+    if (count($others) + count($types) == 1 && !$settings['content']['selector']['any']['force']) {
+      $form['types']['#type'] = 'hidden';
+      $form['types']['#default_value'] = key(array_slice($options, count($options) - 1));
+    }
+
+    if (!$settings['content']['selector']['label_visibility']) {
+      $form['types']['#title_display'] = 'invisible';
+    }
+  }
+  
+  // Criteria.
+  $criteria = array('or', 'phrase', 'negative');
+  foreach ($criteria as $c) {
+    if ($settings['criteria'][$c]['display']) {
+      $form['criteria_' . $c] = array(
+        '#type'       => 'textfield',
+        '#title'      => $settings['criteria'][$c]['label'],
+        '#size'       => 15,
+        '#maxlength'  => 255,
+        '#weight'     => $settings['order']['elements']['criteria_' . $c]['sort'],
+      );
+    }
+  }
+  
+  // Custom paths.
+  if ($settings['paths']['paths'] != '') {
+    $options = array();
+    $lines = explode("\n", $settings['paths']['paths']);
+    foreach ($lines as $line) {
+      $temp = explode('|', $line);
+      $options[$temp[0]] = (count($temp) >= 2) ? t($temp[1]) : '';
+    }
+    if (count($options) == 1) {
+      $form['paths'] = array(
+        '#type'           => 'hidden',
+        '#default_value'  => key($options),
+      );
+    }
+    else {
+      $form['paths'] = array(
+        '#type'           => $settings['paths']['selector'],
+        '#title'          => $settings['paths']['label'],
+        '#options'        => $options,
+        '#default_value'  => key($options),
+        '#weight'         => $settings['order']['elements']['paths']['sort'],
+      );
+      if (!$settings['paths']['label_visibility']) {
+        $form['paths']['#title_display'] = 'invisible';
+      }
+    }
+  }
+  
+  // Submit button.
+  $form['actions'] = array('#type' => 'actions');
+  $form['actions']['submit'] = array(
+    '#type'   => 'submit',
+    '#value'  => $settings['submit_button']['text'],
+    '#weight' => $settings['order']['elements']['submit']['sort'],
+  );
+  if ($settings['submit_button']['image_path'] != '') {
+    $form['actions']['submit']['#type'] = 'image_button';
+    $form['actions']['submit']['#src'] = $settings['submit_button']['image_path'];
+    $form['actions']['submit']['#name'] = 'op';
+    $form['actions']['submit']['#attributes'] = array(
+      'alt'   => array($settings['submit_button']['text']),
+      'class' => array('custom-search-button'),
+    );
+    unset($form['actions']['submit']['#value']);
+  }
+  elseif ($form['actions']['submit']['#value'] == '') {
+    $form['actions']['submit']['#attributes'] = array('style' => 'display:none;');
+  }
+
+  // ApacheSolr autocomplete support.
+  if (function_exists('apachesolr_autocomplete_variable_get_widget')) {
+    // Support for apachesolr_autocomplete module.
+    if (apachesolr_autocomplete_variable_get_widget() == 'custom') {
+      $form['keys']['#attributes']['class'] = array('apachesolr-autocomplete', 'unprocessed');
+    }
+    else {
+      $form['keys']['#autocomplete_path'] = 'apachesolr_autocomplete';
+    }
+  }
+
+  // Popup.
+  $form['popup'] = array(
+    '#type'       => 'fieldset',
+    '#weight'     => 1 + $settings['order']['elements']['search_box']['sort'],
+    '#attributes' => array('class' => array('custom_search-popup')),
+  );
+  if (!empty($form['types']) && $settings['order']['elements']['content_types']['region'] == 'popup') {
+    $form['popup']['types'] = $form['types'];
+    unset($form['types']);
+  }
+  if (!empty($form['paths']) && $settings['order']['elements']['paths']['region'] == 'popup') {
+    $form['popup']['paths'] = $form['paths'];
+    unset($form['paths']);
+  }
+  foreach ($criteria as $c) {
+    if ($settings['criteria'][$c]['display'] && $settings['order']['elements']['criteria_' . $c]['region'] == 'popup') {
+      $form['popup']['criteria_' . $c] = $form['criteria_' . $c];
+      unset($form['criteria_' . $c]);
+    }
+  }
+
+  // Invoke other modules hooks.
+  foreach (module_implements('custom_search_box') as $module) {
+    $function = $module . '_custom_search_box';
+    if (function_exists($function)) {
+      call_user_func_array($function, array(&$form, $form_id, $settings));
+    }
+  }
+
+  // If nothing has been added to the popup, don't output any markup.
+  if (!count(element_children($form['popup']))) {
+    unset($form['popup']);
+  }
+  
+  // Add settings to $form_state for later use.
+  $form_state['custom_search_settings'] = $settings;
+
+  // Form attributes.
+  $form['#attributes'] = array(
+    'role'    => 'search',
+    'class'   => array('search-form'),
+    'enctype' => 'multipart/form-data',
+  );
+  $form['#submit'][] = 'custom_search_submit';
+
+  return $form;
 }
 
 /**
  * Implements hook_form_alter().
  */
 function custom_search_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
 
-  // Filter the form_id value to identify all the custom blocks.
-  $form_id_processed = $form_id;
-  $delta = '';
-  for ($a = 1; $a <= variable_get('custom_search_blocks_number', 1); $a++) {
-    if ($form_id == 'custom_search_blocks_form_' . $a) {
-      $form_id_processed = 'custom_search_blocks_form';
-      $delta = 'blocks_' . $a . '_';
-    }
-  }
+    case 'layout_block_configure_form':
+      // Adds validation to block admin, so we can save image if needed.
+      $form['#validate'][] = 'custom_search_block_validation';
+      break;
 
-  switch ($form_id_processed) {
+    case 'language_admin_add_form':
+      // Adds a callback to languages admin page, so we can adds default config.
+      $form['predefined_submit']['#submit'][] = 'custom_search_language_add';
+      $form['custom_language']['submit']['#submit'][] = 'custom_search_language_add';
+      break;
 
     case 'search_form':
-
+      // Customize the results page.
       if (isset($form['module']) && $form['module']['#value'] == 'node') {
+        $config = config('custom_search.settings');
 
         if (isset($form['advanced'])) {
 
           // Criteria.
-          if (!variable_get('custom_search_advanced_or_display', TRUE)) {
+          if (!$config->get('advanced_or_display')) {
             $form['advanced']['keywords']['or']['#type'] = 'hidden';
           }
-          if (!variable_get('custom_search_advanced_phrase_display', TRUE)) {
+          if (!$config->get('advanced_phrase_display')) {
             $form['advanced']['keywords']['phrase']['#type'] = 'hidden';
           }
-          if (!variable_get('custom_search_advanced_negative_display', TRUE)) {
+          if (!$config->get('advanced_negative_display')) {
             $form['advanced']['keywords']['negative']['#type'] = 'hidden';
           }
 
           // Content types.
           $names = array_keys(node_type_get_names());
           foreach ($names as $name) {
-            if (!variable_get('custom_search_advanced_type_' . $name . '_display', TRUE)) {
+            if (!$config->get('advanced_type_' . $name . '_display')) {
               unset($form['advanced']['type']['#options'][$name]);
             }
           }
@@ -139,7 +749,7 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
           }
           if (count($language_options) > 1) {
             foreach ($language_options as $key => $name) {
-              if (!variable_get('custom_search_advanced_language_' . $key . '_display', TRUE)) {
+              if (!$config->get('advanced_language_' . $key . '_display')) {
                 unset($form['advanced']['language']['#options'][$key]);
               } 
             }
@@ -150,7 +760,7 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
 
         }
 
-        if (!variable_get('custom_search_results_search', TRUE)) {
+        if (!$config->get('results_search')) {
           if (isset($form['basic']['keys'])) {
             // If basic search is hidden, import terms into advanced search.
             $original_keys = $form['basic']['keys']['#default_value'];
@@ -169,210 +779,14 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
           $form['basic']['#suffix'] = '</div>';
         }
 
-        $form['advanced']['#collapsible'] = variable_get('custom_search_results_advanced_search_collapsible', TRUE);
-        $form['advanced']['#collapsed'] = variable_get('custom_search_results_advanced_search_collapsed', TRUE);
+        $form['advanced']['#collapsible'] = $config->get('results_advanced_search_collapsible');
+        $form['advanced']['#collapsed'] = $config->get('results_advanced_search_collapsed');
 
-        if (!variable_get('custom_search_results_advanced_search', TRUE)) {
+        if (!$config->get('results_advanced_search')) {
           $form['advanced']['#type'] = 'hidden';
         }
 
       }
-
-      break;
-
-    case 'search_theme_form':
-    case 'search_block_form':
-    case 'custom_search_blocks_form':
-
-      if (user_access('use custom search')) {
-        // Title.
-        $form[$form_id]['#title'] = variable_get('custom_search_' . $delta . 'label', CUSTOM_SEARCH_LABEL_DEFAULT);
-        $form[$form_id]['#title_display'] = (!variable_get('custom_search_' . $delta . 'label_visibility', FALSE)) ? 'invisible' : 'before';
-
-        // Search box.
-        if (module_exists('elements') && variable_get('custom_search_' . $delta . 'element', 'textfield') != 'textfield') {
-          $form[$form_id]['#type'] = variable_get('custom_search_' . $delta . 'element', 'textfield');
-        }
-        $form[$form_id]['#weight'] = variable_get('custom_search_' . $delta . 'search_box_weight', 0);
-        $form[$form_id]['#size'] = variable_get('custom_search_' . $delta . 'size', CUSTOM_SEARCH_SIZE_DEFAULT);
-        $form[$form_id]['#maxlength'] = variable_get('custom_search_' . $delta . 'max_length', CUSTOM_SEARCH_MAX_LENGTH_DEFAULT);
-        if (!isset($form[$form_id]['#attributes'])) {
-          $form[$form_id]['#attributes'] = array('class' => array());
-        }
-        elseif (!isset($form[$form_id]['#attributes']['class'])) {
-          $form[$form_id]['#attributes']['class'] = array();
-        }
-        $form[$form_id]['#attributes']['class'][] = 'custom-search-box';
-        $form[$form_id]['#attributes']['placeholder'] = variable_get('custom_search_' . $delta . 'text', '');
-        $form[$form_id]['#attributes']['title'] = variable_get('custom_search_' . $delta . 'hint_text', CUSTOM_SEARCH_HINT_TEXT_DEFAULT);
-
-        // CSS.
-        drupal_add_css(drupal_get_path('module', 'custom_search') . '/custom_search.css');
-
-        // Criteria.
-        $criteria = array('or' => 6, 'phrase' => 7, 'negative' => 8);
-        foreach ($criteria as $c => $w) {
-          if (variable_get('custom_search_' . $delta . 'criteria_' . $c . '_display', FALSE)) {
-            $form['custom_search_criteria_' . $c] = array(
-              '#type'       => 'textfield',
-              '#title'      => variable_get('custom_search_' . $delta . 'criteria_' . $c . '_label', constant('CUSTOM_SEARCH_CRITERIA_' . strtoupper($c) . '_LABEL_DEFAULT')),
-              '#size'       => 15,
-              '#maxlength'  => 255,
-              '#weight'     => variable_get('custom_search_' . $delta . 'criteria_' . $c . '_weight', $w),
-            );
-          }
-        }
-
-        // Content type & other searches.
-        // Content types.
-        $toptions = array();
-        $types = array_keys(array_filter(variable_get('custom_search_' . $delta . 'node_types', array())));
-        if (count($types)) {
-          $names = node_type_get_names();
-          if (count($types) > 1 || variable_get('custom_search_' . $delta . 'any_force', FALSE)) {
-            $toptions['c-all'] = variable_get('custom_search_' . $delta . 'type_selector_all', CUSTOM_SEARCH_ALL_TEXT_DEFAULT);
-          }
-          foreach ($types as $type) {
-            $toptions['c-' . $type] = $names[$type];
-          }
-        }
-        $options = array();
-        // Other searches.
-        $others = array_keys(array_filter(variable_get('custom_search_' . $delta . 'other', array())));
-        // If content types and other searches are combined, make an optgroup.
-        if (count($others) && count($toptions) && variable_get('custom_search_' . $delta . 'type_selector', 'select') == 'select') {
-          $content = module_invoke('node', 'search_info');
-          $options[$content['title']] = $toptions;
-        }
-        else {
-          $options = $toptions;
-        }
-        foreach (module_implements('search_info') as $module) {
-          if ($module != 'node' && $name = module_invoke($module, 'search_info')) {
-            if (in_array($module, $others)) {
-              $options['o-' . $module] = t($name['title']);
-            }
-          }
-        }
-        if (count($options)) {
-          $selector_type = variable_get('custom_search_' . $delta . 'type_selector', 'select');
-          if ($selector_type == 'selectmultiple') {
-            $selector_type = 'select';
-            $multiple = TRUE;
-          }
-          else {
-            $multiple = FALSE;
-          }
-          $form['custom_search_types'] = array(
-            '#type'           => $selector_type,
-            '#multiple'       => $multiple,
-            '#title'          => variable_get('custom_search_' . $delta . 'type_selector_label', CUSTOM_SEARCH_TYPE_SELECTOR_LABEL_DEFAULT),
-            '#options'        => $options,
-            '#default_value'  => ((variable_get('custom_search_' . $delta . 'type_selector', 'select') == 'checkboxes') ? array('c-all') : 'c-all'),
-            '#attributes'     => array('class' => array('custom-search-selector', 'custom-search-types')),
-            '#weight'         => variable_get('custom_search_' . $delta . 'content_types_weight', 1),
-            '#validated'      => TRUE,
-          );
-
-          // If there's only one type, hide the selector.
-          if (count($others) + count($types) == 1 && !variable_get('custom_search_' . $delta . 'any_force', FALSE)) {
-            $form['custom_search_types']['#type'] = 'hidden';
-            $form['custom_search_types']['#default_value'] = key(array_slice($options, count($options) - 1));
-          }
-
-          if (!variable_get('custom_search_' . $delta . 'type_selector_label_visibility', TRUE)) {
-            $form['custom_search_types']['#title_display'] = 'invisible';
-          }
-        }
-
-        // Custom paths.
-        if (variable_get('custom_search_' . $delta . 'paths', '') != '') {
-          $options = array();
-          $lines = explode("\n", variable_get('custom_search_' . $delta . 'paths', ''));
-          foreach ($lines as $line) {
-            $temp = explode('|', $line);
-            $options[$temp[0]] = (count($temp) >= 2) ? t($temp[1]) : '';
-          }
-          if (count($options) == 1) {
-            $form['custom_search_paths'] = array(
-              '#type'           => 'hidden',
-              '#default_value'  => key($options),
-            );
-          }
-          else {
-            $form['custom_search_paths'] = array(
-              '#type'           => variable_get('custom_search_' . $delta . 'paths_selector', 'select'),
-              '#title'          => variable_get('custom_search_' . $delta . 'paths_selector_label', CUSTOM_SEARCH_PATHS_SELECTOR_LABEL_DEFAULT),
-              '#options'        => $options,
-              '#default_value'  => key($options),
-              '#weight'         => variable_get('custom_search_' . $delta . 'custom_paths_weight', 9),
-            );
-            if (!variable_get('custom_search_' . $delta . 'paths_selector_label_visibility', TRUE)) {
-              $form['custom_search_paths']['#title_display'] = 'invisible';
-            }
-          }
-        }
-
-        // Submit button.
-        $form['actions']['submit']['#value'] = variable_get('custom_search_' . $delta . 'submit_text', CUSTOM_SEARCH_SUBMIT_TEXT_DEFAULT);
-
-        if (variable_get('custom_search_' . $delta . 'image_path', '') != '') {
-          $form['actions']['submit']['#type'] = 'image_button';
-          $form['actions']['submit']['#src'] = variable_get('custom_search_' . $delta . 'image_path', '');
-          $form['actions']['submit']['#name'] = 'op';
-          $form['actions']['submit']['#attributes'] = array(
-            'alt'   => array(variable_get('custom_search_' . $delta . 'submit_text', CUSTOM_SEARCH_SUBMIT_TEXT_DEFAULT)),
-            'class' => array('custom-search-button'),
-          );
-          unset($form['actions']['submit']['#value']);
-        }
-        elseif ($form['actions']['submit']['#value'] == '') {
-          $form['actions']['submit']['#attributes'] = array('style' => 'display:none;');
-        }
-
-        $form['actions']['#weight'] = variable_get('custom_search_' . $delta . 'submit_button_weight', 3);
-
-        // Popup.
-        $form['popup'] = array(
-          '#type'       => 'fieldset',
-          '#weight'     => 1 + variable_get('custom_search_' . $delta . 'search_box_weight', 0),
-          '#attributes' => array('class' => array('custom_search-popup')),
-        );
-        if (!empty($form['custom_search_types']) && variable_get('custom_search_' . $delta . 'content_types_region', 'block') == 'popup') {
-          $form['popup']['custom_search_types'] = $form['custom_search_types'];
-          unset($form['custom_search_types']);
-        }
-        if (!empty($form['custom_search_paths']) && variable_get('custom_search_' . $delta . 'custom_paths_region', 'block') == 'popup') {
-          $form['popup']['custom_search_paths'] = $form['custom_search_paths'];
-          unset($form['custom_search_paths']);
-        }
-        foreach ($criteria as $c => $w) {
-          if (variable_get('custom_search_' . $delta . 'criteria_' . $c . '_display', FALSE) && variable_get('custom_search_' . $delta . 'criteria_' . $c . '_region', 'block') == 'popup') {
-            $form['popup']['custom_search_criteria_' . $c] = $form['custom_search_criteria_' . $c];
-            unset($form['custom_search_criteria_' . $c]);
-          }
-        }
-
-        // Invoke other modules hooks.
-        foreach (module_implements('custom_search_box') as $module) {
-          $function = $module . '_custom_search_box';
-          if (function_exists($function)) {
-            call_user_func_array($function, array(&$form, $form_id, $delta));
-          }
-        }
-
-        // If nothing has been added to the popup, don't output any markup.
-        if (!count(element_children($form['popup']))) {
-          unset($form['popup']);
-        }
-
-        // Form attributes.
-        $form['#attributes']['class'] = array('search-form');
-        if (!in_array('custom_search_submit', $form['#submit'])) {
-          $form['#submit'][] = 'custom_search_submit';
-        }
-      }
-
       break;
 
   }
@@ -382,14 +796,19 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
  * Alter the search to respect the search modes selected.
  */
 function custom_search_submit($form, &$form_state) {
-  // Save delta for later use (exclusion & refresh).
-  $delta = (isset($form_state['values']['delta'])) ? 'blocks_' . $form_state['values']['delta'] . '_' : '';
-  variable_set('custom_search_delta', $delta);
+  $config = config('custom_search.settings');
+
+  // Save some settings for later use (exclusion & refresh).
+  $config->set('current_excluded_types', $form_state['custom_search_settings']['content']['node_types_excluded']);
+  $config->set('current_node_types', $form_state['custom_search_settings']['content']['selector']['node_types']);
+  $config->set('current_content_selector_any_text', $form_state['custom_search_settings']['content']['selector']['any']['text']);
+  $config->save();
+
   $type = 'node';
-  $keys = $form_state['values'][$form_state['values']['form_id']];
+  $keys = $form_state['values']['keys'];
   $original_keywords = $keys;
 
-  $types = (isset($form_state['values']['custom_search_types'])) ? $form_state['values']['custom_search_types'] : array();
+  $types = (isset($form_state['values']['types'])) ? $form_state['values']['types'] : array();
   if (!is_array($types)) {
     $types = array($types);
   }
@@ -398,9 +817,9 @@ function custom_search_submit($form, &$form_state) {
   if (module_exists('taxonomy')) {
     $terms = array();
     $vocabularies = taxonomy_get_vocabularies();
-    foreach ($vocabularies as $voc) {
-      if (isset($form_state['values']['custom_search_vocabulary_' . $voc->vid])) {
-        $vterms = $form_state['values']['custom_search_vocabulary_' . $voc->vid];
+    foreach ($vocabularies as $name => $voc) {
+      if (isset($form_state['values']['vocabulary_' . $name])) {
+        $vterms = $form_state['values']['vocabulary_' . $name];
         if (!is_array($vterms)) {
           $vterms = array($vterms);
         }
@@ -423,7 +842,6 @@ function custom_search_submit($form, &$form_state) {
     }   
   }
 
-
   $search_types = module_implements('search_info');
   if (in_array(current($types), $search_types)) {
     $type = current($types);
@@ -432,14 +850,14 @@ function custom_search_submit($form, &$form_state) {
   }
   else {
     $path = $type;
-    if (isset($form_state['values']['custom_search_criteria_or']) && trim($form_state['values']['custom_search_criteria_or']) != '') {
-      $keys .= ' ' . str_replace(' ', ' OR ', trim($form_state['values']['custom_search_criteria_or']));
+    if (isset($form_state['values']['criteria_or']) && trim($form_state['values']['criteria_or']) != '') {
+      $keys .= ' ' . str_replace(' ', ' OR ', trim($form_state['values']['criteria_or']));
     }
-    if (isset($form_state['values']['custom_search_criteria_negative']) && trim($form_state['values']['custom_search_criteria_negative']) != '') {
-      $keys .= ' -' . str_replace(' ', ' -', trim($form_state['values']['custom_search_criteria_negative']));
+    if (isset($form_state['values']['criteria_negative']) && trim($form_state['values']['criteria_negative']) != '') {
+      $keys .= ' -' . str_replace(' ', ' -', trim($form_state['values']['criteria_negative']));
     }
-    if (isset($form_state['values']['custom_search_criteria_phrase']) && trim($form_state['values']['custom_search_criteria_phrase']) != '') {
-      $keys .= ' "' . trim($form_state['values']['custom_search_criteria_phrase']) . '"';
+    if (isset($form_state['values']['criteria_phrase']) && trim($form_state['values']['criteria_phrase']) != '') {
+      $keys .= ' "' . trim($form_state['values']['criteria_phrase']) . '"';
     }
     $original_keywords = $keys;
     if (count($types)) {
@@ -450,8 +868,8 @@ function custom_search_submit($form, &$form_state) {
       }
       // If -Any- is selected and -Any- is set to restrict the search,
       // grab the content types.
-      elseif (variable_get('custom_search_' . $delta . 'any_restricts', FALSE)) {
-        $types = array_keys(array_filter(variable_get('custom_search_' . $delta . 'node_types', array())));
+      elseif ($form_state['custom_search_settings']['content']['selector']['any']['restricts']) {
+        $types = array_keys(array_filter($form_state['custom_search_settings']['content']['selector']['node_types']));
         $keys = search_expression_insert($keys, 'type', implode(',', $types));
       }
     }
@@ -459,7 +877,7 @@ function custom_search_submit($form, &$form_state) {
       $keys = search_expression_insert($keys, 'term', implode(',', $terms));
     }
     if (module_exists('custom_search_i18n')) {
-      $i18n_search_language = variable_get('custom_search_i18n_search_language', 'all');
+      $i18n_search_language = $config->get('i18n_search_language');
       if ($i18n_search_language == 'current') {
         $keys = search_expression_insert($keys, 'language', i18n_language()->language);
       }
@@ -494,15 +912,8 @@ function custom_search_submit($form, &$form_state) {
       'keys'  => $keys,
     ));
   }
-  elseif (module_exists('luceneapi_node') && variable_get('luceneapi:default_search', 0)) {
-    $search_path = _custom_search_lucenapi_search(array(
-      'keywords'  => $original_keywords,
-      'types'     => $types,
-      'terms'     => (!empty($terms)) ? $terms : array(),
-    ));
-  }
   elseif (module_exists('search_api_page')) {
-    $search_api_page = search_api_page_load(variable_get('custom_search_' . $delta . 'search_api_page', 0));
+    $search_api_page = search_api_page_load(config_get('custom_search.settings', 'search_api_page'));
     if ($search_api_page) {
       $search_path = _custom_search_search_api_search(array(
         'keywords'  => $original_keywords,
@@ -514,11 +925,11 @@ function custom_search_submit($form, &$form_state) {
   }
 
   // Build a custom path if needed.
-  if (isset($form_state['values']['custom_search_paths']) && $form_state['values']['custom_search_paths'] != '') {
-    $custom_path = str_replace('[key]', $form_state['values'][$form_state['values']['form_id']], $form_state['values']['custom_search_paths']);
+  if (isset($form_state['values']['paths']) && $form_state['values']['paths'] != '') {
+    $custom_path = str_replace('[key]', $form_state['values']['keys'], $form_state['values']['paths']);
     $custom_path = str_replace('[current_path]', current_path(), $custom_path);
-    if (strpos($form_state['values']['custom_search_paths'], '[terms]') !== FALSE) {
-      $custom_path = str_replace('[terms]', (count($terms)) ? implode($form_state['values']['custom_search_paths_terms_separator'], $terms) : '', $custom_path);
+    if (strpos($form_state['values']['paths'], '[terms]') !== FALSE) {
+      $custom_path = str_replace('[terms]', (count($terms)) ? implode($form_state['values']['paths_terms_separator'], $terms) : '', $custom_path);
     }
     // Check for a query string.
     $custom_path_query_position = strpos($custom_path, '?');
@@ -550,14 +961,12 @@ function custom_search_submit($form, &$form_state) {
  * Rewrite the sql query to exclude content types.
  */
 function custom_search_query_alter(QueryAlterableInterface $query) {
-  if (!$query->hasTag('custom_search_ignore') && $query->hasTag('node_access') && $query->hasTag('pager')) {
-    $excluded_types = array_filter(variable_get('custom_search_' . variable_get('custom_search_delta', '') . 'node_types_excluded', array()));
-    if (!empty($excluded_types)) {
-      $tables = $query->getTables();
-      foreach ($tables as $table) {
-        if ($table['table'] == 'search_index') {
-          $query->condition('n.type', $excluded_types, 'NOT IN');
-        }
+  $used_tables = $query->getTables();
+  if (isset($used_tables['i']) && isset($used_tables['n']) && isset($used_tables['t'])) {
+    if ($used_tables['i']['table'] == 'search_index' && $used_tables['n']['table'] == 'node' && $used_tables['t']['table'] == 'search_total' && !$query->hasTag('custom_search_ignore') && $query->hasTag('node_access') && $query->hasTag('pager')) {
+      $excluded_types = array_filter(config_get('custom_search.settings', 'current_excluded_types'));
+      if (!empty($excluded_types)) {
+        $query->condition('n.type', $excluded_types, 'NOT IN');
       }
     }
   }
@@ -569,12 +978,14 @@ function custom_search_query_alter(QueryAlterableInterface $query) {
  */
 function custom_search_block_view_alter(&$data, $block) {
   if ($block->module == 'facetapi') {
-    $excluded_types = array_filter(variable_get('custom_search_' . variable_get('custom_search_delta', '') . 'node_types_excluded', array()));
-    foreach ($data['content']['bundle']["#items"] as $key => $item) {
-      // Find the type in the link.
-      preg_match('/<a(.*)href="(.*)bundle%3A(.*?)(&|")(.*)/', $item['data'], $matches);
-      // Exclude it if not needed.
-      if (in_array($matches[3], $excluded_types)) unset($data['content']['bundle']["#items"][$key]);
+    $excluded_types = array_filter(config_get('custom_search.settings', 'current_excluded_types'));
+    if (!empty($excluded_types) && isset($data['content']['bundle']) && is_array($data['content']['bundle']["#items"])) {
+      foreach ($data['content']['bundle']["#items"] as $key => $item) {
+        // Find the type in the link.
+        preg_match('/<a(.*)href="(.*)bundle%3A(.*?)(&|")(.*)/', $item['data'], $matches);
+        // Exclude it if not needed.
+        if (!empty($matches) && in_array($matches[3], $excluded_types)) unset($data['content']['bundle']["#items"][$key]);
+      }
     }
   }
 }
@@ -583,15 +994,13 @@ function custom_search_block_view_alter(&$data, $block) {
  * Implements hook_init().
  */
 function custom_search_init() {
-  if (user_access('use custom search')) {
-    drupal_add_js(drupal_get_path('module', 'custom_search') . '/js/custom_search.js');
-    drupal_add_js(array(
-      'custom_search' => array(
-        'form_target' => variable_get('custom_search_target', '_self'),
-        'solr'        => (module_exists('apachesolr_search') || module_exists('search_api_solr')) ? 1 : 0,
-      ),
-    ), array('type' => 'setting'));
-  }
+  drupal_add_js(drupal_get_path('module', 'custom_search') . '/js/custom_search.js');
+  drupal_add_js(array(
+    'custom_search' => array(
+      'form_target' => config_get('custom_search.settings', 'target'),
+      'solr'        => (module_exists('apachesolr_search') || module_exists('search_api_solr')) ? 1 : 0,
+    ),
+  ), array('type' => 'setting'));
 }
 
 /**
@@ -607,12 +1016,6 @@ function custom_search_theme() {
       'render element'  => 'form',
       'path'            => $path,
       'template'        => 'custom_search-sort-form',
-    ),
-    'search_result' => array(
-      'variables' => array('result' => NULL, 'module' => NULL),
-      'path'      => $path,
-      'file'      => 'custom_search.pages.inc',
-      'template'  => 'custom_search-result',
     ),
     'search_results' => array(
       'variables' => array('results' => NULL, 'module' => NULL),
@@ -632,21 +1035,6 @@ function custom_search_theme() {
 }
 
 /**
- * Implements hook_link().
- */
-function custom_search_contextual_links_view_alter(&$element, $items) {
-  if (isset($element['#element']['#form_id']) &&
-    ($element['#element']['#form_id'] == 'search_block_form') &&
-    user_access('administer custom search')) {
-    $element['#links']['custom_search'] = array(
-      'title' => t('Custom Search configuration'),
-      'href'  => 'admin/config/search/custom_search',
-      'query' => drupal_get_destination(),
-    );
-  }
-}
-
-/**
  * Filter the types.
  */
 function _custom_search_filter_keys($val) {
@@ -659,4 +1047,94 @@ function _custom_search_filter_keys($val) {
  */
 function custom_search_filter_array($value = FALSE) {
   return $value !== 0;
+}
+
+/**
+ * Default block settings.
+ */
+function _custom_search_default_block_settings() {
+  return array(
+    'search_box' => array(
+      'label_visibility'  => TRUE,
+      'label'             => t('Search this site'),
+      'text'              => '',
+      'hint_text'         => t('Enter the terms you wish to search for.'),
+      'size'              => 15,
+      'max_length'        => 128,
+    ),
+    'submit_button' => array(
+      'text'        => t('Search'),
+      'image_path'  => '',
+    ),
+    'criteria' => array(
+      'or' => array(
+        'display' => FALSE,
+        'label'   => t('Containing any of the words'),
+      ),
+      'phrase' => array(
+        'display' => FALSE,
+        'label'   => t('Containing the phrase'),
+      ),
+      'negative' => array(
+        'display' => FALSE,
+        'label'   => t('Containing none of the words'),
+      ),
+    ),
+    'searchapi' => array(
+      'page' => 0,
+    ),
+    'content' => array(
+      'selector'  => array(
+        'node_types'        => array(),
+        'other'             => array(),
+        'selector'          => 'select',
+        'label_visibility'  => TRUE,
+        'label'             => t('Search for'),
+        'any'               => array(
+          'text'      => t('-Any-'),
+          'restricts' => FALSE,
+          'force'     => FALSE,
+        ),
+      ),
+      'node_types_excluded' => array(),
+    ),
+    'paths' => array(
+      'selector'         => 'select',
+      'label_visibility' => TRUE,
+      'label'            => t('Customize your search'),
+      'paths'            => ''
+    ),
+    'order' => array(
+      'elements' => array(
+        'search_box' => array(
+          'sort'    => -1,
+          'region'  => 'block',
+        ),
+        'content_types' => array(
+          'sort'    => 0,
+          'region'  => 'block',
+        ),
+        'criteria_or' => array(
+          'sort'    => 6,
+          'region'  => 'block',
+        ),
+        'criteria_phrase' => array(
+          'sort'    => 7,
+          'region'  => 'block',
+        ),
+        'criteria_negative' => array(
+          'sort'    => 8,
+          'region'  => 'block',
+        ),
+        'paths' => array(
+          'sort'    => 9,
+          'region'  => 'block',
+        ),
+        'submit' => array(
+          'sort'    => 10,
+          'region'  => 'block',
+        ),
+      ),
+    ),
+  );
 }
