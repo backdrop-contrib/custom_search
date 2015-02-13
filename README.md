@@ -1,15 +1,21 @@
 Custom Search
 =============
 
-This module alters the default search box in many ways. If you need to have
-options available like in advanced search, but directly in the search box, this
-module is for you.
+This module provides new custom search blocks. If you need to have
+options available like in advanced search, but directly in the search block,
+this module is for you.
 
 Backdrop port status
 --------------------
 
-At this point, this is a basic port.
-Config system conversion is on the way.
+This is a port of my Custom Search module for Drupal 7.
+Config system conversion has been done for the core module.
+Custom Search Blocks submodule is not needed anymore, because the new
+Layout module allows multiple blocks from the same module now.
+Custom Search Taxonomy has been merged into the main module.
+Custom Search Internationalization blocks is still waiting to see
+if the Drupal i18n module will be ported to Backdrop or not, or
+if another solution is found.
 
 Basic options
 -------------
@@ -18,10 +24,10 @@ The module adds options to select:
 
 -   which content type(s) to search,
 
+-   which taxonomy term(s) to search,
+
 -   which specific module search to use (node, help, user or any module that
     implements search),
-
--   which input type to use (with Elements),
 
 -   advanced criteria
 
@@ -39,15 +45,12 @@ advanced search criteria, change the default submit button text, use an image
 instead of the submit button, change the order of all the elements, include some
 elements in a popup block, add a filter to the results page, show/hide basic
 and/or advanced search in the results page, show/hide meta data in the results
-page, multiple search paths
+page, multiple search paths.
 
 Included submodules
 -------------------
 
 -   Custom Search Taxonomy: taxonomy options for the search block
-
--   Custom Search Blocks: provides additional search blocks, with different
-    settings
 
 -   Custom Search Internationalization: search content from all or current
     language only, and all label and selectors translation handling
@@ -58,11 +61,13 @@ Installation
 -   Install this module using the official Backdrop CMS instructions at
     https://backdropcms.org/guide/modules.
 
--   Go to Configuration \> Search and metadata \> Custom search to change
-    settings (admin/config/search/custom\_search/settings) and enter the
-    required information.
+-   Go to Structure \> Layouts (admin/structure/layouts) to add
+    Custom Search Blocks as you would do for any other block.
+    All the settings are available in the block config.
 
--   Don't forget to set permissions, otherwise nobody will see the changes.
+-   Go to Configuration \> Search and metadata \> Custom search 
+    (admin/config/search/custom\_search/settings) to change settings
+    for the results page.
 
 License
 -------
