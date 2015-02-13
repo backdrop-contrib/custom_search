@@ -80,20 +80,6 @@
             $('.search-form input:checkbox[value=' + types[i] + ']').attr('checked', true);
           }
         }
-        // terms
-        var delimiter = encodeURIComponent('term:')
-        var pos = edit_keys.indexOf(delimiter);
-        if (pos != -1) {
-          var pos2 = edit_keys.indexOf(encodeURIComponent(' '), pos);
-          if (pos2 == -1) {
-            pos2 = edit_keys.length;
-          }
-          var terms = edit_keys.substring(pos + delimiter.length, pos2);
-          terms = terms.split(encodeURIComponent(','));
-          for (var i = 0; i < terms.length; i++) {
-            $('#edit-term option[value=' + terms[i] + ']').attr('selected', true);
-          }
-        }
         // languages
         var delimiter = encodeURIComponent('language:')
         var pos = edit_keys.indexOf(delimiter);
