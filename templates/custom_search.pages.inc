@@ -56,7 +56,7 @@ function custom_search_preprocess_search_results(&$variables) {
         }
       }
       if (!isset($variables['filter-title'])) {
-        $variables['filter-title'] = filter_xss($config->get('filter_label'));
+        $variables['filter-title'] = filter_xss(t($config->get('filter_label')));
       }
       if (count($items) > 2) {
         $variables['filter'] = theme('item_list', array('items' => $items, 'title' => $variables['filter-title']));

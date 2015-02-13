@@ -13,13 +13,10 @@ Config system conversion has been done for the core module.
 Custom Search Blocks submodule is not needed anymore, because the new
 Layout module allows multiple blocks from the same module.
 
-Custom Search Taxonomy has been merged into the main module.
+Custom Search Taxonomy and Internationalization have been merged
+into the main module.
 
 ### Remainging tasks
-
-Custom Search Internationalization submodule is still waiting to see
-if the Drupal i18n module will be ported to Backdrop or not, or
-if another solution is found.
 
 Due the fact that the block system has been replaced by the Layout system,
 I don't know if an upgrade path is possible… still investigating.
@@ -50,7 +47,7 @@ advanced search criteria, change the default submit button text, use an image
 instead of the submit button, change the order of all the elements, include some
 elements in a popup block, add a filter to the results page, show/hide basic
 and/or advanced search in the results page, show/hide meta data in the results
-page, multiple search paths.
+page, multiple search paths…
 
 ## Included submodules
 

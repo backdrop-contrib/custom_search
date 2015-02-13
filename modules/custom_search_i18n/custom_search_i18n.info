@@ -1,7 +1,0 @@
-name = Custom Search Internationalization
-description = Provides Internationalization to Custom Search.
-backdrop = 1.x
-package = Search
-
-dependencies[] = custom_search
-dependencies[] = i18n_string

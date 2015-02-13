@@ -26,7 +26,7 @@
       // Displays Popup.
       $('form.search-form input.custom-search-box', context).bind('click focus', function(e){
         var $parentForm = $(this).parents('form');
-        // check if there's something in the popup and displays it
+        // check if there's something in the popup and displays it.
         var popup = $parentForm.find('fieldset.custom_search-popup');
         if (popup.find('input,select').length && !popup.hasClass('opened')) {
           popup.fadeIn().addClass('opened');
@@ -37,7 +37,7 @@
         $('fieldset.custom_search-popup').hide().removeClass('opened');
       });
 
-      // Handle checkboxes
+      // Handle checkboxes.
       $('.custom-search-selector input:checkbox', context).each(function(){
         var el = $(this);
         if (el.val() == 'c-all') {
@@ -63,10 +63,10 @@
         }
       });
 
-      // Reselect types and terms in advanced search
+      // Reselect types in advanced search.
       var edit_keys = encodeURIComponent($('#edit-keys').val());
       if (edit_keys) {
-        // types
+        // Types.
         var delimiter = encodeURIComponent('type:')
         var pos = edit_keys.indexOf(delimiter);
         if (pos != -1) {
@@ -80,22 +80,9 @@
             $('.search-form input:checkbox[value=' + types[i] + ']').attr('checked', true);
           }
         }
-        // languages
-        var delimiter = encodeURIComponent('language:')
-        var pos = edit_keys.indexOf(delimiter);
-        if (pos != -1) {
-          var pos2 = edit_keys.indexOf(encodeURIComponent(' '), pos);
-          if (pos2 == -1) {
-            pos2 = edit_keys.length;
-          }
-          var languages = edit_keys.substring(pos + delimiter.length,pos2);
-          languages = languages.split(encodeURIComponent(','));
-          for (var i = 0; i < languages.length; i++) {
-            $('.search-advanced #edit-language-' + languages[i]).attr('checked', true);
-          }
-        }
       }
 
+      // Handle popup.
       var popup = $('fieldset.custom_search-popup:not(.custom_search-processed)', context).addClass("custom_search-processed");
       popup.click(function(e){
         e.stopPropagation();

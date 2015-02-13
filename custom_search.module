@@ -417,6 +417,25 @@ function custom_search_block_configure($delta, $settings) {
     ),
   );
 
+  // Languages.
+  $form['languages'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Languages'),
+    '#collapsible'  => TRUE,
+    '#collapsed'    => TRUE,
+  );
+  $form['languages']['search_language'] = array(
+    '#type'           => 'select',
+    '#title'          => t('Search content from'),
+    '#options'        => array(
+      'all'             => t('any language'),
+      'current'         => t('current language'),
+      'current_neutral' => t('current language and language neutral'),
+    ),
+    '#description'    => t('Choose which language will be used to search content.'),
+    '#default_value'  => $settings['languages']['search_language'],
+  );
+
   // Custom paths.
   $form['paths'] = array(
     '#type'         => 'fieldset',
@@ -579,9 +598,6 @@ function custom_search_block_view($delta = '', $settings = array()) {
 
 /**
  * Form builder; Output a search form for the search block's search box.
- *
- * @ingroup forms
- * @see search_box_form_submit()
  */
 function custom_search_block_form($form, &$form_state, $settings) {
   drupal_add_css(drupal_get_path('module', 'custom_search') . '/custom_search.css');
@@ -589,15 +605,15 @@ function custom_search_block_form($form, &$form_state, $settings) {
   // Search box.
   $form['keys'] = array(
     '#type'           => 'search',
-    '#title'          => $settings['search_box']['label'],
+    '#title'          => t($settings['search_box']['label']),
     '#title_display'  => !$settings['search_box']['label_visibility'] ? 'invisible' : 'before',
     '#size'           => $settings['search_box']['size'],
     '#maxlength'      => $settings['search_box']['max_length'],
     '#default_value'  => '',
     '#attributes'     => array(
-      'title'       => $settings['search_box']['hint_text'],
+      'title'       => t($settings['search_box']['hint_text']),
       'class'       => array('custom-search-box'),
-      'placeholder' => $settings['search_box']['text'],
+      'placeholder' => t($settings['search_box']['text']),
     ),
     '#weight'         => $settings['order']['elements']['search_box']['sort'],
   );
@@ -620,7 +636,7 @@ function custom_search_block_form($form, &$form_state, $settings) {
   if (count($types)) {
     $names = node_type_get_names();
     if (count($types) > 1 || $settings['content']['selector']['any']['force']) {
-      $toptions['c-all'] = $settings['content']['selector']['any']['text'];
+      $toptions['c-all'] = t($settings['content']['selector']['any']['text']);
     }
     foreach ($types as $type) {
       $toptions['c-' . $type] = $names[$type];
@@ -656,7 +672,7 @@ function custom_search_block_form($form, &$form_state, $settings) {
     $form['types'] = array(
       '#type'           => $selector_type,
       '#multiple'       => $multiple,
-      '#title'          => $settings['content']['selector']['label'],
+      '#title'          => t($settings['content']['selector']['label']),
       '#options'        => $options,
       '#default_value'  => (($selector_type == 'checkboxes') ? array('c-all') : 'c-all'),
       '#attributes'     => array('class' => array('custom-search-selector', 'custom-search-types')),
@@ -698,7 +714,7 @@ function custom_search_block_form($form, &$form_state, $settings) {
         $form['vocabulary_' . $name] = array(
           '#type'           => $selector_type,
           '#multiple'       => $multiple,
-          '#title'          => $settings['taxonomy'][$name]['label'],
+          '#title'          => t($settings['taxonomy'][$name]['label']),
           '#options'        => $options,
           '#default_value'  => ($selector_type == 'checkboxes') ? array('c-all') : 'c-all',
           '#attributes'     => array('class' => array('custom-search-selector', 'custom-search-vocabulary')),
@@ -731,13 +747,19 @@ function custom_search_block_form($form, &$form_state, $settings) {
     if ($settings['criteria'][$c]['display']) {
       $form['criteria_' . $c] = array(
         '#type'       => 'textfield',
-        '#title'      => $settings['criteria'][$c]['label'],
+        '#title'      => t($settings['criteria'][$c]['label']),
         '#size'       => 15,
         '#maxlength'  => 255,
         '#weight'     => $settings['order']['elements']['criteria_' . $c]['sort'],
       );
     }
   }
+
+  // Languages.
+  $form['search_language'] = array(
+    '#type'           => 'hidden',
+    '#default_value'  => $settings['languages']['search_language'],
+  );
   
   // Custom paths.
   if ($settings['paths']['paths'] != '') {
@@ -756,7 +778,7 @@ function custom_search_block_form($form, &$form_state, $settings) {
     else {
       $form['paths'] = array(
         '#type'           => $settings['paths']['selector'],
-        '#title'          => $settings['paths']['label'],
+        '#title'          => t($settings['paths']['label']),
         '#options'        => $options,
         '#default_value'  => key($options),
         '#weight'         => $settings['order']['elements']['paths']['sort'],
@@ -775,7 +797,7 @@ function custom_search_block_form($form, &$form_state, $settings) {
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type'   => 'submit',
-    '#value'  => $settings['submit_button']['text'],
+    '#value'  => t($settings['submit_button']['text']),
     '#weight' => $settings['order']['elements']['submit']['sort'],
   );
   if ($settings['submit_button']['image_path'] != '') {
@@ -783,7 +805,7 @@ function custom_search_block_form($form, &$form_state, $settings) {
     $form['actions']['submit']['#src'] = $settings['submit_button']['image_path'];
     $form['actions']['submit']['#name'] = 'op';
     $form['actions']['submit']['#attributes'] = array(
-      'alt'   => array($settings['submit_button']['text']),
+      'alt'   => t($settings['submit_button']['text']),
       'class' => array('custom-search-button'),
     );
     unset($form['actions']['submit']['#value']);
@@ -1027,17 +1049,17 @@ function custom_search_submit($form, &$form_state) {
         $keys = search_expression_insert($keys, 'type', implode(',', $types));
       }
     }
+    // Taxonomy arg.
     if (module_exists('taxonomy') && count($terms)) {
       $keys = search_expression_insert($keys, 'term', implode(',', $terms));
     }
-    if (module_exists('custom_search_i18n')) {
-      $i18n_search_language = $config->get('i18n_search_language');
-      if ($i18n_search_language == 'current') {
-        $keys = search_expression_insert($keys, 'language', i18n_language()->language);
-      }
-      elseif ($i18n_search_language == 'current_neutral') {
-        $keys = search_expression_insert($keys, 'language', i18n_language()->language . ',und');
-      }
+    // Language arg.
+    $search_language = $form_state['values']['search_language'];
+    if ($search_language == 'current') {
+      $keys = search_expression_insert($keys, 'language', $GLOBALS['language']->langcode);
+    }
+    elseif ($search_language == 'current_neutral') {
+      $keys = search_expression_insert($keys, 'language', $GLOBALS['language']->langcode . ',und');
     }
   }
   $search_path = array(
@@ -1250,6 +1272,9 @@ function _custom_search_default_block_settings() {
         'display' => FALSE,
         'label'   => t('Containing none of the words'),
       ),
+    ),
+    'languages' => array(
+      'search_language' => 'all',
     ),
     'paths' => array(
       'selector'          => 'select',
