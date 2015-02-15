@@ -926,11 +926,11 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
           if (count($language_options) > 1) {
             foreach ($language_options as $key => $name) {
               if (!$config->get('advanced_language_' . $key . '_display')) {
-                unset($form['advanced']['language']['#options'][$key]);
+                unset($form['advanced']['langcode']['#options'][$key]);
               } 
             }
-            if (!count($form['advanced']['language']['#options'])) {
-              unset($form['advanced']['language']['#type']);
+            if (!count($form['advanced']['langcode']['#options'])) {
+              unset($form['advanced']['langcode']['#type']);
             }
           }
 
@@ -1056,10 +1056,10 @@ function custom_search_submit($form, &$form_state) {
     // Language arg.
     $search_language = $form_state['values']['search_language'];
     if ($search_language == 'current') {
-      $keys = search_expression_insert($keys, 'language', $GLOBALS['language']->langcode);
+      $keys = search_expression_insert($keys, 'langcode', $GLOBALS['language']->langcode);
     }
     elseif ($search_language == 'current_neutral') {
-      $keys = search_expression_insert($keys, 'language', $GLOBALS['language']->langcode . ',und');
+      $keys = search_expression_insert($keys, 'langcode', $GLOBALS['language']->langcode . ',und');
     }
   }
   $search_path = array(
