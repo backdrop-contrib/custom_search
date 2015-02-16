@@ -926,11 +926,11 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
           if (count($language_options) > 1) {
             foreach ($language_options as $key => $name) {
               if (!$config->get('advanced_language_' . $key . '_display')) {
-                unset($form['advanced']['langcode']['#options'][$key]);
+                unset($form['advanced']['language']['#options'][$key]);
               } 
             }
-            if (!count($form['advanced']['langcode']['#options'])) {
-              unset($form['advanced']['langcode']['#type']);
+            if (!count($form['advanced']['language']['#options'])) {
+              unset($form['advanced']['language']['#type']);
             }
           }
 
