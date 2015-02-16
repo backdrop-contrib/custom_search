@@ -63,25 +63,6 @@
         }
       });
 
-      // Reselect types in advanced search.
-      var edit_keys = encodeURIComponent($('#edit-keys').val());
-      if (edit_keys) {
-        // Types.
-        var delimiter = encodeURIComponent('type:')
-        var pos = edit_keys.indexOf(delimiter);
-        if (pos != -1) {
-          var pos2 = edit_keys.indexOf(encodeURIComponent(' '), pos);
-          if (pos2 == -1) {
-            pos2 = edit_keys.length;
-          }
-          var types = edit_keys.substring(pos + delimiter.length,pos2);
-          types = types.split(encodeURIComponent(','));
-          for (var i = 0; i < types.length; i++) {
-            $('.search-form input:checkbox[value=' + types[i] + ']').attr('checked', true);
-          }
-        }
-      }
-
       // Handle popup.
       var popup = $('fieldset.custom_search-popup:not(.custom_search-processed)', context).addClass("custom_search-processed");
       popup.click(function(e){
