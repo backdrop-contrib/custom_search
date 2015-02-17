@@ -78,3 +78,10 @@ function custom_search_update_1000() {
   }
   $config->save();
 }
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function custom_search_update_last_removed() {
+  return 7103;
+}
