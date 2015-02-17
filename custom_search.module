@@ -50,7 +50,7 @@ function custom_search_menu() {
   $items['admin/config/search/custom_search'] = array(
     'title'             => 'Custom Search',
     'description'       => 'Customize the default search behaviour.',
-    'page callback'     => 'drupal_get_form',
+    'page callback'     => 'backdrop_get_form',
     'page arguments'    => array('custom_search_admin_form'),
     'access arguments'  => array('administer custom search'),
     'file'              => 'custom_search.admin.inc',
@@ -105,7 +105,7 @@ function custom_search_language_add($form, &$form_state) {
  * Implements hook_block_configure().
  */
 function custom_search_block_configure($delta, $settings) {
-  drupal_add_css(drupal_get_path('module', 'custom_search') . '/custom_search.css');
+  backdrop_add_css(backdrop_get_path('module', 'custom_search') . '/custom_search.css');
 
   $settings += _custom_search_default_block_settings();
 
@@ -600,7 +600,7 @@ function custom_search_block_view($delta = '', $settings = array()) {
  * Form builder; Output a search form for the search block's search box.
  */
 function custom_search_block_form($form, &$form_state, $settings) {
-  drupal_add_css(drupal_get_path('module', 'custom_search') . '/custom_search.css');
+  backdrop_add_css(backdrop_get_path('module', 'custom_search') . '/custom_search.css');
 
   // Search box.
   $form['keys'] = array(
@@ -701,7 +701,7 @@ function custom_search_block_form($form, &$form_state, $settings) {
         $vocabulary_depth = !$settings['taxonomy'][$name]['depth'] ? NULL : $settings['taxonomy'][$name]['depth'];
         $terms = taxonomy_get_tree($name, 0, $vocabulary_depth);
         foreach ($terms as $term) {
-          $options['c-' . $term->tid] = (drupal_substr($settings['taxonomy'][$name]['selector'], 0, 6) == 'select') ? str_repeat('-', $term->depth) . ' ' . $term->name : $term->name;
+          $options['c-' . $term->tid] = (backdrop_substr($settings['taxonomy'][$name]['selector'], 0, 6) == 'select') ? str_repeat('-', $term->depth) . ' ' . $term->name : $term->name;
         }
         $selector_type = $settings['taxonomy'][$name]['selector'];
         if ($selector_type == 'selectmultiple') {
@@ -1172,7 +1172,7 @@ function custom_search_submit($form, &$form_state) {
       $custom_path = substr($custom_path, 0, $custom_path_query_position);
     }
     // Check for external path. If not, add base path.
-    if (drupal_substr($custom_path, 0, 4) != 'http') {
+    if (backdrop_substr($custom_path, 0, 4) != 'http') {
       $custom_path = url($custom_path, array('absolute' => TRUE));
     }
     // Send the final url.
@@ -1221,8 +1221,8 @@ function custom_search_block_view_alter(&$data, $block) {
  * Implements hook_init().
  */
 function custom_search_init() {
-  drupal_add_js(drupal_get_path('module', 'custom_search') . '/js/custom_search.js');
-  drupal_add_js(array(
+  backdrop_add_js(backdrop_get_path('module', 'custom_search') . '/js/custom_search.js');
+  backdrop_add_js(array(
     'custom_search' => array(
       'form_target' => config_get('custom_search.settings', 'target'),
       'solr'        => (module_exists('apachesolr_search') || module_exists('search_api_solr')) ? 1 : 0,
@@ -1234,7 +1234,7 @@ function custom_search_init() {
  * Implements hook_theme().
  */
 function custom_search_theme() {
-  $path = drupal_get_path('module', 'custom_search') . '/templates';
+  $path = backdrop_get_path('module', 'custom_search') . '/templates';
   $custom_search_theme_array = array(
     'custom_search_javascript' => array(
       'variables' => array(),
@@ -1265,7 +1265,7 @@ function custom_search_theme() {
  * Filter the types.
  */
 function _custom_search_filter_keys($val) {
-  return (strlen($val) > 2 && $val[1] == '-') ? drupal_substr($val, 2) : $val;
+  return (strlen($val) > 2 && $val[1] == '-') ? backdrop_substr($val, 2) : $val;
 }
 
 /**

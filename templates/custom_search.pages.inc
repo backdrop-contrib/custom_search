@@ -26,7 +26,7 @@ function custom_search_preprocess_search_results(&$variables) {
         $keys = $path[2];
       }
       if (strpos($keys, 'type:') !== FALSE) {
-        $keys = drupal_substr($keys, 0, strpos($keys, 'type:') - 1);
+        $keys = backdrop_substr($keys, 0, strpos($keys, 'type:') - 1);
       }
       // Get Custom Search authorized types.
       $searchable_node_types = array();
