@@ -14,11 +14,11 @@
   endforeach;
 
   // Add table javascript.
-  drupal_add_js('core/misc/tableheader.js');
-  drupal_add_js(drupal_get_path('module', 'custom_search') . '/js/custom_search_sort.js');
+  backdrop_add_js('core/misc/tableheader.js');
+  backdrop_add_js(backdrop_get_path('module', 'custom_search') . '/js/custom_search_sort.js');
   foreach ($element_regions as $region => $title) :
-    drupal_add_tabledrag('elements', 'match', 'sibling', 'region-select', 'region-select-' . $region, NULL, FALSE);
-    drupal_add_tabledrag('elements', 'order', 'sibling', 'sort-select', 'sort-select-' . $region);
+    backdrop_add_tabledrag('elements', 'match', 'sibling', 'region-select', 'region-select-' . $region, NULL, FALSE);
+    backdrop_add_tabledrag('elements', 'order', 'sibling', 'sort-select', 'sort-select-' . $region);
   endforeach;
 ?>
 <table id="elements" class="sticky-enabled">
@@ -43,8 +43,8 @@
         if ($data['region']['#value'] == $region): ?>
           <tr class="draggable <?php print $row % 2 == 0 ? 'odd' : 'even'; ?>">
             <td class="element"><?php print $data['#title']; ?></td>
-            <td><?php print drupal_render($data['region']); ?></td>
-            <td><?php print drupal_render($data['sort']); ?></td>
+            <td><?php print backdrop_render($data['region']); ?></td>
+            <td><?php print backdrop_render($data['sort']); ?></td>
           </tr>
           <?php $row++;
         endif;
