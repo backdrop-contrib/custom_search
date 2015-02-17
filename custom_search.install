@@ -28,3 +28,53 @@ function custom_search_install() {
   
   $config->save();
 }
+
+/**
+ * Move general settings from variables to config.
+ */
+function custom_search_update_1000() {
+  // Migrate variables to config.
+  $config = config('custom_search.settings');
+  $config->set('target', update_variable_get('custom_search_target', '_self'));
+  $config->set('results_search', update_variable_get('custom_search_results_search', TRUE));
+  $config->set('results_advanced_search', update_variable_get('custom_search_results_advanced_search', TRUE));
+  $config->set('results_advanced_search_collapsible', update_variable_get('custom_search_results_advanced_search_collapsible', TRUE));
+  $config->set('results_advanced_search_collapsed', update_variable_get('custom_search_results_advanced_search_collapsed', TRUE));
+  $config->set('advanced_or_display', update_variable_get('custom_search_advanced_or_display', TRUE));
+  $config->set('advanced_phrase_display', update_variable_get('custom_search_advanced_phrase_display', TRUE));
+  $config->set('advanced_negative_display', update_variable_get('custom_search_advanced_negative_display', TRUE));
+  $config->set('results_info_type', update_variable_get('custom_search_results_info_type', FALSE));
+  $config->set('results_info_user', update_variable_get('custom_search_results_info_user', TRUE));
+  $config->set('results_info_date', update_variable_get('custom_search_results_info_date', TRUE));
+  $config->set('results_info_comment', update_variable_get('custom_search_results_info_comment', TRUE));
+  $config->set('filter', update_variable_get('custom_search_filter', 'disabled'));
+  $config->set('filter_label', update_variable_get('custom_search_filter_label', t('Filter the results')));
+
+  // Delete variables.
+  update_variable_del('custom_search_target');
+  update_variable_del('custom_search_results_search');
+  update_variable_del('custom_search_results_advanced_search');
+  update_variable_del('custom_search_results_advanced_search_collapsible');
+  update_variable_del('custom_search_results_advanced_search_collapsed');
+  update_variable_del('custom_search_advanced_or_display');
+  update_variable_del('custom_search_advanced_phrase_display');
+  update_variable_del('custom_search_advanced_negative_display');
+  update_variable_del('custom_search_results_info_type');
+  update_variable_del('custom_search_results_info_user');
+  update_variable_del('custom_search_results_info_date');
+  update_variable_del('custom_search_results_info_comment');
+  update_variable_del('custom_search_filter');
+  update_variable_del('custom_search_filter_label');
+
+  // Migrate dynamic variables to config.
+  $types = node_type_get_names();
+  foreach ($types as $type => $name) {
+    $config->set('advanced_type_' . $type . '_display', update_variable_get('custom_search_advanced_type_' . $type . '_display', TRUE));
+    update_variable_del('custom_search_advanced_type_' . $type . '_display');
+  }
+  foreach (language_list('language') as $key => $entity) {
+    $config->set('advanced_language_' . $key . '_display', update_variable_get('custom_search_advanced_language_' . $key . '_display', TRUE));
+    update_variable_del('custom_search_advanced_language_' . $key . '_display');
+  }
+  $config->save();
+}
