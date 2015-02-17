@@ -202,7 +202,9 @@ function custom_search_admin_form_submit($form, &$form_state) {
   $config->set('results_info_type', $form_state['values']['results_info_type']);
   $config->set('results_info_user', $form_state['values']['results_info_user']);
   $config->set('results_info_date', $form_state['values']['results_info_date']);
-  $config->set('results_info_comment', $form_state['values']['results_info_comment']);
+  if (module_exists('comment')) {
+    $config->set('results_info_comment', $form_state['values']['results_info_comment']);
+  }
   $config->set('filter', $form_state['values']['filter']);
   $config->set('filter_label', $form_state['values']['filter_label']);
 
