@@ -1029,10 +1029,10 @@ function custom_search_submit($form, &$form_state) {
   $config->save();
 
   $type = 'node';
-  $keys = $form_state['values']['keys'];
+  $keys = $form_state['input']['keys'];
   $original_keywords = $keys;
 
-  $types = (isset($form_state['values']['types'])) ? $form_state['values']['types'] : array();
+  $types = (isset($form_state['input']['types'])) ? $form_state['input']['types'] : array();
   if (!is_array($types)) {
     $types = array($types);
   }
@@ -1041,9 +1041,9 @@ function custom_search_submit($form, &$form_state) {
   if (module_exists('taxonomy')) {
     $terms = array();
     $vocabularies = taxonomy_get_vocabularies();
-    foreach ($vocabularies as $name => $voc) {
-      if (isset($form_state['values']['vocabulary_' . $name])) {
-        $vterms = $form_state['values']['vocabulary_' . $name];
+    foreach ($vocabularies as $machine_name => $voc) {
+      if (isset($form_state['input']['vocabulary_' . $machine_name])) {
+        $vterms = $form_state['input']['vocabulary_' . $machine_name];
         if (!is_array($vterms)) {
           $vterms = array($vterms);
         }
@@ -1074,14 +1074,14 @@ function custom_search_submit($form, &$form_state) {
   }
   else {
     $path = $type;
-    if (isset($form_state['values']['criteria_or']) && trim($form_state['values']['criteria_or']) != '') {
-      $keys .= ' ' . str_replace(' ', ' OR ', trim($form_state['values']['criteria_or']));
+    if (isset($form_state['input']['criteria_or']) && trim($form_state['input']['criteria_or']) != '') {
+      $keys .= ' ' . str_replace(' ', ' OR ', trim($form_state['input']['criteria_or']));
     }
-    if (isset($form_state['values']['criteria_negative']) && trim($form_state['values']['criteria_negative']) != '') {
-      $keys .= ' -' . str_replace(' ', ' -', trim($form_state['values']['criteria_negative']));
+    if (isset($form_state['input']['criteria_negative']) && trim($form_state['input']['criteria_negative']) != '') {
+      $keys .= ' -' . str_replace(' ', ' -', trim($form_state['input']['criteria_negative']));
     }
-    if (isset($form_state['values']['criteria_phrase']) && trim($form_state['values']['criteria_phrase']) != '') {
-      $keys .= ' "' . trim($form_state['values']['criteria_phrase']) . '"';
+    if (isset($form_state['input']['criteria_phrase']) && trim($form_state['input']['criteria_phrase']) != '') {
+      $keys .= ' "' . trim($form_state['input']['criteria_phrase']) . '"';
     }
     $original_keywords = $keys;
     if (count($types)) {
@@ -1102,7 +1102,7 @@ function custom_search_submit($form, &$form_state) {
       $keys = search_expression_insert($keys, 'term', implode(',', $terms));
     }
     // Language arg.
-    $search_language = $form_state['values']['search_language'];
+    $search_language = $form_state['input']['search_language'];
     if ($search_language == 'current') {
       $keys = search_expression_insert($keys, 'langcode', $GLOBALS['language']->langcode);
     }
