@@ -920,7 +920,7 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
                 $search_args['languages'] = explode(',', $arg[1]);
                 break;
               default:
-                $search_args['keys'][] = $arg[1];
+                $search_args['keys'][] = $arg[0] . ':' . $arg[1];
             }
           }
           else {
