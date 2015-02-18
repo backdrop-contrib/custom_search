@@ -1,8 +1,8 @@
 (function($) {
-  Drupal.behaviors.custom_search = {
+  Backdrop.behaviors.custom_search = {
     attach: function(context) {
 
-      if (!Drupal.settings.custom_search.solr) {
+      if (!Backdrop.settings.custom_search.solr) {
         // Check if the search box is not empty on submit
         $('form.search-form', context).submit(function(){
           var $this = $(this);
@@ -21,7 +21,7 @@
       }
 
       // Search from target
-      $('form.search-form').attr('target', Drupal.settings.custom_search.form_target);
+      $('form.search-form').attr('target', Backdrop.settings.custom_search.form_target);
 
       // Displays Popup.
       $('form.search-form input.custom-search-box', context).bind('click focus', function(e){
@@ -68,7 +68,7 @@
       popup.click(function(e){
         e.stopPropagation();
       })
-      popup.append('<a class="custom_search-popup-close" href="#">' + Drupal.t('Close') + '</a>');
+      popup.append('<a class="custom_search-popup-close" href="#">' + Backdrop.t('Close') + '</a>');
       $('a.custom_search-popup-close').click(function(e){
         $('fieldset.custom_search-popup.opened').hide().removeClass('opened');
         e.preventDefault();
