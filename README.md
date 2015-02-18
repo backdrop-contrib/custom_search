@@ -8,18 +8,13 @@ this module is for you.
 
 This is a port of my Custom Search module for Drupal 7.
 
-Config system conversion has been done for the core module.
+Config system conversion and upgrade path have been done.
 
 Custom Search Blocks submodule is not needed anymore, because the new
 Layout module allows multiple blocks from the same module.
 
 Custom Search Taxonomy and Internationalization have been merged
 into the main module.
-
-### Remainging tasks
-
-Due the fact that the block system has been replaced by the Layout system,
-I don't know if an upgrade path is possible… still investigating.
 
 ## Basic options
 
