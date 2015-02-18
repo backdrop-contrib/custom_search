@@ -285,21 +285,21 @@ function custom_search_block_configure($delta, $settings) {
         '#collapsible'  => TRUE,
         '#collapsed'    => TRUE,
       );
-      foreach ($vocabularies as $name => $voc) {
+      foreach ($vocabularies as $machine_name => $voc) {
 
         // Sets default values if needed
-        if (!isset($settings['taxonomy'][$name])) {
-          $settings['taxonomy'][$name] = _custom_search_default_taxonomy_settings($voc->name);
-          $settings['order']['elements']['vocabulary_' . $name] = _custom_search_default_taxonomy_sort_settings(1);
+        if (!isset($settings['taxonomy'][$machine_name])) {
+          $settings['taxonomy'][$machine_name] = _custom_search_default_taxonomy_settings($voc->name);
+          $settings['order']['elements']['vocabulary_' . $machine_name] = _custom_search_default_taxonomy_sort_settings(1);
         }
 
-        $form['taxonomy'][$name] = array(
+        $form['taxonomy'][$machine_name] = array(
           '#type'         => 'fieldset',
           '#title'        => check_plain($voc->name),
           '#collapsible'  => TRUE,
-          '#collapsed'    => $settings['taxonomy'][$name]['selector'] == 'disabled' ? TRUE : FALSE,
+          '#collapsed'    => $settings['taxonomy'][$machine_name]['selector'] == 'disabled' ? TRUE : FALSE,
         );
-        $form['taxonomy'][$name]['selector'] = array(
+        $form['taxonomy'][$machine_name]['selector'] = array(
           '#type'           => 'select',
           '#title'          => t('Selector type'),
           '#options'        => array(
@@ -310,38 +310,38 @@ function custom_search_block_configure($delta, $settings) {
             'checkboxes'      => t('Checkboxes'),
           ),
           '#description'    => t('Choose which selector type to use.'),
-          '#default_value'  => $settings['taxonomy'][$name]['selector'],
+          '#default_value'  => $settings['taxonomy'][$machine_name]['selector'],
         );
         if (module_exists('hs_taxonomy')) {
-          $form['taxonomy'][$name]['selector']['#options']['hierarchical_select'] = t('Hierarchical selector');
+          $form['taxonomy'][$machine_name]['selector']['#options']['hierarchical_select'] = t('Hierarchical selector');
         }
-        $form['taxonomy'][$name]['depth'] = array(
+        $form['taxonomy'][$machine_name]['depth'] = array(
           '#type'           => 'textfield',
           '#title'          => t('Depth'),
           '#size'           => 2,
-          '#default_value'  => $settings['taxonomy'][$name]['depth'],
+          '#default_value'  => $settings['taxonomy'][$machine_name]['depth'],
           '#description'    => t('Define the maximum depth of terms being displayed. The default value is "0" which disables the limit.'),
         );
-        $form['taxonomy'][$name]['label_visibility'] = array(
+        $form['taxonomy'][$machine_name]['label_visibility'] = array(
           '#type'           => 'checkbox',
           '#title'          => t('Display label'),
-          '#default_value'  => $settings['taxonomy'][$name]['label_visibility'],
+          '#default_value'  => $settings['taxonomy'][$machine_name]['label_visibility'],
         );
-        $form['taxonomy'][$name]['label'] = array(
+        $form['taxonomy'][$machine_name]['label'] = array(
           '#type'           => 'textfield',
           '#title'          => t('Label text'),
-          '#default_value'  => $settings['taxonomy'][$name]['label'],
+          '#default_value'  => $settings['taxonomy'][$machine_name]['label'],
           '#description'    => t('Enter the label text for the selector. The default value is "@default".', array('@default' => $voc->name)),
           '#states' => array(
             'visible' => array(
-              ':input[name="taxonomy[content][' . $name . '][label_visibility]"]' => array('checked' => TRUE),
+              ':input[name="taxonomy[content][' . $machine_name . '][label_visibility]"]' => array('checked' => TRUE),
             ),
           ),
         );
-        $form['taxonomy'][$name]['any'] = array(
+        $form['taxonomy'][$machine_name]['any'] = array(
           '#type'           => 'textfield',
           '#title'          => t('-Any- text'),
-          '#default_value'  => $settings['taxonomy'][$name]['any'],
+          '#default_value'  => $settings['taxonomy'][$machine_name]['any'],
           '#required'       => TRUE,
           '#description'    => t('Enter the text for "any term" choice. The default value is "!default".', array('!default' => CUSTOM_SEARCH_ALL_TEXT_DEFAULT)),
         );
@@ -532,8 +532,8 @@ function custom_search_block_configure($delta, $settings) {
 
   if (module_exists('taxonomy')) {
     $vocabularies = taxonomy_get_vocabularies();
-    foreach ($vocabularies as $name => $voc) {
-      $elements['vocabulary_' . $name] = t('Vocabulary: !vocname', array('!vocname' => $voc->name));
+    foreach ($vocabularies as $machine_name => $voc) {
+      $elements['vocabulary_' . $machine_name] = t('Vocabulary: !vocname', array('!vocname' => $voc->name));
     }
   }
 
@@ -638,8 +638,8 @@ function custom_search_block_form($form, &$form_state, $settings) {
     if (count($types) > 1 || $settings['content']['selector']['any']['force']) {
       $toptions['c-all'] = t($settings['content']['selector']['any']['text']);
     }
-    foreach ($types as $type) {
-      $toptions['c-' . $type] = $names[$type];
+    foreach ($types as $machine_name) {
+      $toptions['c-' . $machine_name] = $names[$machine_name];
     }
   }
   $options = array();
@@ -694,16 +694,16 @@ function custom_search_block_form($form, &$form_state, $settings) {
   // Taxonomy.
   if (module_exists('taxonomy')) {
     $vocabularies = taxonomy_get_vocabularies();
-    foreach ($vocabularies as $name => $voc) {
-      if (isset($settings['taxonomy'][$name]) && $settings['taxonomy'][$name]['selector'] != 'disabled') {
+    foreach ($vocabularies as $machine_name => $voc) {
+      if (isset($settings['taxonomy'][$machine_name]) && $settings['taxonomy'][$machine_name]['selector'] != 'disabled') {
         $options = array();
-        $options['c-all'] = $settings['taxonomy'][$name]['any'];
-        $vocabulary_depth = !$settings['taxonomy'][$name]['depth'] ? NULL : $settings['taxonomy'][$name]['depth'];
-        $terms = taxonomy_get_tree($name, 0, $vocabulary_depth);
+        $options['c-all'] = $settings['taxonomy'][$machine_name]['any'];
+        $vocabulary_depth = !$settings['taxonomy'][$machine_name]['depth'] ? NULL : $settings['taxonomy'][$machine_name]['depth'];
+        $terms = taxonomy_get_tree($machine_name, 0, $vocabulary_depth);
         foreach ($terms as $term) {
-          $options['c-' . $term->tid] = (backdrop_substr($settings['taxonomy'][$name]['selector'], 0, 6) == 'select') ? str_repeat('-', $term->depth) . ' ' . $term->name : $term->name;
+          $options['c-' . $term->tid] = (backdrop_substr($settings['taxonomy'][$machine_name]['selector'], 0, 6) == 'select') ? str_repeat('-', $term->depth) . ' ' . $term->name : $term->name;
         }
-        $selector_type = $settings['taxonomy'][$name]['selector'];
+        $selector_type = $settings['taxonomy'][$machine_name]['selector'];
         if ($selector_type == 'selectmultiple') {
           $selector_type = 'select';
           $multiple = TRUE;
@@ -711,31 +711,31 @@ function custom_search_block_form($form, &$form_state, $settings) {
         else {
           $multiple = FALSE;
         }
-        $form['vocabulary_' . $name] = array(
+        $form['vocabulary_' . $machine_name] = array(
           '#type'           => $selector_type,
           '#multiple'       => $multiple,
-          '#title'          => t($settings['taxonomy'][$name]['label']),
+          '#title'          => t($settings['taxonomy'][$machine_name]['label']),
           '#options'        => $options,
           '#default_value'  => ($selector_type == 'checkboxes') ? array('c-all') : 'c-all',
           '#attributes'     => array('class' => array('custom-search-selector', 'custom-search-vocabulary')),
-          '#weight'         => $settings['order']['elements']['vocabulary_' . $name]['sort'],
+          '#weight'         => $settings['order']['elements']['vocabulary_' . $machine_name]['sort'],
         );
   
-        if (!$settings['taxonomy'][$name]['label_visibility']) {
-          $form['vocabulary_' . $name]['#title_display'] = 'invisible';
+        if (!$settings['taxonomy'][$machine_name]['label_visibility']) {
+          $form['vocabulary_' . $machine_name]['#title_display'] = 'invisible';
         }
   
         if (module_exists('hs_taxonomy') && $selector_type == 'hierarchical_select') {
-          $hs_config = hierarchical_select_common_config_get('taxonomy-' . $name);
+          $hs_config = hierarchical_select_common_config_get('taxonomy-' . $machine_name);
           $hs_config['module'] = 'hs_taxonomy';
           $hs_config['params'] = array(
-            'vid'                         => $name,
+            'vid'                         => $machine_name,
             'exclude_tid'                 => 0,
             'root_term'                   => 0,
             'entity_count_for_node_type'  => 0,
           );
-          $form['vocabulary_' . $voc->vid]['#config'] = $hs_config;
-          unset($form['vocabulary_' . $voc->vid]['#options']);
+          $form['vocabulary_' . $machine_name]['#config'] = $hs_config;
+          unset($form['vocabulary_' . $machine_name]['#options']);
         }
       }
     }
@@ -834,10 +834,10 @@ function custom_search_block_form($form, &$form_state, $settings) {
   }
   if (module_exists('taxonomy')) {
     $vocabularies = taxonomy_get_vocabularies();
-    foreach ($vocabularies as $name => $voc) {
-      if (!empty($form['vocabulary_' . $name]) && $settings['order']['elements']['vocabulary_' . $name]['region'] == 'popup') {
-        $form['popup']['custom_search_vocabulary_' . $name] = $form['vocabulary_' . $name];
-        unset($form['vocabulary_' . $name]);
+    foreach ($vocabularies as $machine_name => $voc) {
+      if (!empty($form['vocabulary_' . $machine_name]) && $settings['order']['elements']['vocabulary_' . $machine_name]['region'] == 'popup') {
+        $form['popup']['custom_search_vocabulary_' . $machine_name] = $form['vocabulary_' . $machine_name];
+        unset($form['vocabulary_' . $machine_name]);
       }
     }
   }
@@ -954,9 +954,9 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
 
           // Content types.
           $names = array_keys(node_type_get_names());
-          foreach ($names as $name) {
-            if (!$config->get('advanced_type_' . $name . '_display')) {
-              unset($form['advanced']['type']['#options'][$name]);
+          foreach ($names as $machine_name) {
+            if (!$config->get('advanced_type_' . $machine_name . '_display')) {
+              unset($form['advanced']['type']['#options'][$machine_name]);
             }
           }
           if (!count($form['advanced']['type']['#options'])) {
@@ -967,15 +967,15 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
           }
 
           // Languages.
-          foreach (language_list('language') as $key => $entity) {
-            if ($entity->enabled) {
-              $language_options[$key] = $entity->name;
+          foreach (language_list('language') as $langcode => $language) {
+            if ($language->enabled) {
+              $language_options[$langcode] = $language->name;
             }
           }
           if (count($language_options) > 1) {
-            foreach ($language_options as $key => $name) {
-              if (!$config->get('advanced_language_' . $key . '_display')) {
-                unset($form['advanced']['language']['#options'][$key]);
+            foreach ($language_options as $langcode => $name) {
+              if (!$config->get('advanced_language_' . $langcode . '_display')) {
+                unset($form['advanced']['language']['#options'][$langcode]);
               } 
             }
             if (!count($form['advanced']['language']['#options'])) {
@@ -1149,14 +1149,14 @@ function custom_search_submit($form, &$form_state) {
   }
 
   // Build a custom path if needed.
-  if (isset($form_state['values']['paths']) && $form_state['values']['paths'] != '') {
-    $custom_path = str_replace('[key]', $form_state['values']['keys'], $form_state['values']['paths']);
+  if (isset($form_state['input']['paths']) && $form_state['input']['paths'] != '') {
+    $custom_path = str_replace('[key]', $form_state['input']['keys'], $form_state['input']['paths']);
     $custom_path = str_replace('[current_path]', current_path(), $custom_path);
-    if (strpos($form_state['values']['paths'], '[types]') !== FALSE) {
-      $custom_path = str_replace('[types]', (count($types)) ? implode($form_state['values']['paths_separator'], $types) : '', $custom_path);
+    if (strpos($form_state['input']['paths'], '[types]') !== FALSE) {
+      $custom_path = str_replace('[types]', (count($types)) ? implode($form_state['input']['paths_separator'], $types) : '', $custom_path);
     }
-    if (strpos($form_state['values']['paths'], '[terms]') !== FALSE) {
-      $custom_path = str_replace('[terms]', (count($terms)) ? implode($form_state['values']['paths_separator'], $terms) : '', $custom_path);
+    if (strpos($form_state['input']['paths'], '[terms]') !== FALSE) {
+      $custom_path = str_replace('[terms]', (count($terms)) ? implode($form_state['input']['paths_separator'], $terms) : '', $custom_path);
     }
     // Check for a query string.
     $custom_path_query_position = strpos($custom_path, '?');
@@ -1191,9 +1191,11 @@ function custom_search_query_alter(QueryAlterableInterface $query) {
   $used_tables = $query->getTables();
   if (isset($used_tables['i']) && isset($used_tables['n']) && isset($used_tables['t'])) {
     if ($used_tables['i']['table'] == 'search_index' && $used_tables['n']['table'] == 'node' && $used_tables['t']['table'] == 'search_total' && !$query->hasTag('custom_search_ignore') && $query->hasTag('node_access') && $query->hasTag('pager')) {
-      $excluded_types = array_filter(config_get('custom_search.settings', 'current_excluded_types'));
-      if (!empty($excluded_types)) {
-        $query->condition('n.type', $excluded_types, 'NOT IN');
+      if ($excluded_types = config_get('custom_search.settings', 'current_excluded_types')) {      
+        $excluded_types = array_filter($excluded_types);
+        if (!empty($excluded_types)) {
+          $query->condition('n.type', $excluded_types, 'NOT IN');
+        }
       }
     }
   }
@@ -1372,9 +1374,9 @@ function _custom_search_default_block_settings() {
   if (module_exists('taxonomy')) {
     $vocabularies = taxonomy_get_vocabularies();
     $weight = 1;
-    foreach ($vocabularies as $name => $voc) {
-      $defaults['taxonomy'][$name] = _custom_search_default_taxonomy_settings($voc->name);
-      $defaults['order']['elements']['vocabulary_' . $name] = _custom_search_default_taxonomy_sort_settings($weight++);
+    foreach ($vocabularies as $machine_name => $voc) {
+      $defaults['taxonomy'][$machine_name] = _custom_search_default_taxonomy_settings($voc->name);
+      $defaults['order']['elements']['vocabulary_' . $machine_name] = _custom_search_default_taxonomy_sort_settings($weight++);
     }
   }
 
@@ -1384,12 +1386,12 @@ function _custom_search_default_block_settings() {
 /**
  * Default taxonomy settings.
  */
-function _custom_search_default_taxonomy_settings($voc_name) {
+function _custom_search_default_taxonomy_settings($name) {
   return array(
     'selector'          => 'disabled',
     'depth'             => 0,
     'label_visibility'  => TRUE,
-    'label'             => $voc_name,
+    'label'             => $name,
     'any'               => CUSTOM_SEARCH_ALL_TEXT_DEFAULT,
   );
 }

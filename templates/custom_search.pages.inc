@@ -30,7 +30,9 @@ function custom_search_preprocess_search_results(&$variables) {
       }
       // Get Custom Search authorized types.
       $searchable_node_types = array();
-      $defined_types = array_filter($config->get('current_node_types'), 'custom_search_filter_array');
+      if ($defined_types = $config->get('current_node_types')) {
+        $defined_types = array_filter($defined_types, 'custom_search_filter_array');
+      }
       $type_names = node_type_get_names();
       if (count($defined_types)) {
         foreach ($defined_types as $type) {
@@ -43,16 +45,16 @@ function custom_search_preprocess_search_results(&$variables) {
       // Build menu.
       $items = array();
       $items[] = l($config->get('current_content_selector_any_text'), 'search/node/' . $keys);
-      foreach ($searchable_node_types as $type => $name) {
+      foreach ($searchable_node_types as $machine_name => $name) {
         // Count # of results per type.
         $nbresults = 0;
         foreach ($variables['results'] as $result) {
-          if ($result['node']->type == $type) {
+          if ($result['node']->type == $machine_name) {
             $nbresults++;
           }
         }
         if ($nbresults) {
-          $items[] = l($name, 'search/node/' . $keys . ' type:' . $type);
+          $items[] = l($name, 'search/node/' . $keys . ' type:' . $machine_name);
         }
       }
       if (!isset($variables['filter-title'])) {

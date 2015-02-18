@@ -82,19 +82,19 @@ function custom_search_admin_form() {
     '#collapsed'    => TRUE,
   );
   $options = node_type_get_names();
-  foreach ($options as $type => $name) {
-    $form['search_form']['advanced']['types']['advanced_type_' . $type . '_display'] = array(
+  foreach ($options as $machine_name => $name) {
+    $form['search_form']['advanced']['types']['advanced_type_' . $machine_name . '_display'] = array(
       '#type'           => 'checkbox',
       '#title'          => $name,
-      '#default_value'  => $config->get('advanced_type_' . $type . '_display', TRUE),
+      '#default_value'  => $config->get('advanced_type_' . $machine_name . '_display', TRUE),
     );
   }
 
   // Languages.
   $language_options = array();
-  foreach (language_list('language') as $key => $entity) {
-    if ($entity->enabled) {
-      $language_options[$key] = $entity->name;
+  foreach (language_list('language') as $langcode => $language) {
+    if ($language->enabled) {
+      $language_options[$langcode] = $language->name;
     }
   }
   if (count($language_options) > 1) {
@@ -105,11 +105,11 @@ function custom_search_admin_form() {
       '#collapsible'  => TRUE,
       '#collapsed'    => TRUE,
     );
-    foreach ($language_options as $key => $name) {
-      $form['search_form']['advanced']['languages']['advanced_language_' . $key . '_display'] = array(
+    foreach ($language_options as $langcode => $name) {
+      $form['search_form']['advanced']['languages']['advanced_language_' . $langcode . '_display'] = array(
         '#type'           => 'checkbox',
         '#title'          => $name,
-        '#default_value'  => $config->get('advanced_language_' . $key . '_display', TRUE),
+        '#default_value'  => $config->get('advanced_language_' . $langcode . '_display', TRUE),
       );
     }
   }
@@ -193,11 +193,11 @@ function custom_search_admin_form_submit($form, &$form_state) {
   $config->set('advanced_phrase_display', $form_state['values']['advanced_phrase_display']);
   $config->set('advanced_negative_display', $form_state['values']['advanced_negative_display']);
   $types = node_type_get_names();
-  foreach ($types as $type => $name) {
-    $config->set('advanced_type_' . $type . '_display', $form_state['values']['advanced_type_' . $type . '_display']);
+  foreach ($types as $machine_name => $name) {
+    $config->set('advanced_type_' . $machine_name . '_display', $form_state['values']['advanced_type_' . $machine_name . '_display']);
   }
-  foreach (language_list('language') as $key => $entity) {
-    $config->set('advanced_language_' . $key . '_display', $form_state['values']['advanced_language_' . $key . '_display']);
+  foreach (language_list('language') as $langcode => $language) {
+    $config->set('advanced_language_' . $langcode . '_display', $form_state['values']['advanced_language_' . $langcode . '_display']);
   }
   $config->set('results_info_type', $form_state['values']['results_info_type']);
   $config->set('results_info_user', $form_state['values']['results_info_user']);
