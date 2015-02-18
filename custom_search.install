@@ -18,15 +18,32 @@ function custom_search_install() {
   $config = config('custom_search.settings');
   
   $types = node_type_get_names();
-  foreach ($types as $type => $name) {
-    $config->set('advanced_type_' . $type . '_display', TRUE);
+  foreach ($types as $machine_name => $name) {
+    $config->set('advanced_type_' . $machine_name . '_display', TRUE);
   }
   
-  foreach (language_list('language') as $key => $entity) {
-    $config->set('advanced_language_' . $key . '_display', TRUE);
+  foreach (language_list('language') as $langcode => $language) {
+    $config->set('advanced_language_' . $langcode . '_display', TRUE);
   }
   
   $config->save();
+}
+
+/**
+ * Implements hook_update_dependencies().
+ */
+function custom_search_update_dependencies() {
+  // Run update 1000 after node_1005() and language_update_1002().
+  $dependencies['custom_search'][1000] = array(
+    'node' => 1005,
+    'language' => 1002,
+  );
+  // Run update 1001 after taxonomy_update_1001() and system_update_1025().
+  $dependencies['custom_search'][1001] = array(
+    'taxonomy' => 1001,
+    'system' => 1025,
+  );
+  return $dependencies;
 }
 
 /**
@@ -68,15 +85,255 @@ function custom_search_update_1000() {
 
   // Migrate dynamic variables to config.
   $types = node_type_get_names();
-  foreach ($types as $type => $name) {
-    $config->set('advanced_type_' . $type . '_display', update_variable_get('custom_search_advanced_type_' . $type . '_display', TRUE));
-    update_variable_del('custom_search_advanced_type_' . $type . '_display');
+  foreach ($types as $machine_name => $name) {
+    $config->set('advanced_type_' . $machine_name . '_display', update_variable_get('custom_search_advanced_type_' . $machine_name . '_display', TRUE));
+    update_variable_del('custom_search_advanced_type_' . $machine_name . '_display');
   }
-  foreach (language_list('language') as $key => $entity) {
-    $config->set('advanced_language_' . $key . '_display', update_variable_get('custom_search_advanced_language_' . $key . '_display', TRUE));
-    update_variable_del('custom_search_advanced_language_' . $key . '_display');
+  foreach (language_list('language') as $langcode => $language) {
+    $config->set('advanced_language_' . $langcode . '_display', update_variable_get('custom_search_advanced_language_' . $langcode . '_display', TRUE));
+    update_variable_del('custom_search_advanced_language_' . $langcode . '_display');
   }
   $config->save();
+}
+
+/**
+ * Upgrade Custom Search blocks to the new layout system.
+ */
+function custom_search_update_1001() {
+  $result = db_query('SELECT value FROM {variable} WHERE name = :name', array(':name' => 'custom_search_blocks_number'))->fetchField();
+  if ($result !== FALSE) {
+    $num_blocks = update_variable_get('custom_search_blocks_number', 1);
+    $layout_files = config_get_names_with_prefix('layout.layout.');
+    // Loop through all layouts.
+    foreach ($layout_files as $layout_config_file) {
+      $layout = config($layout_config_file);
+      $layout_content = $layout->get('content');
+      // Loop throught all blocks.
+      foreach ($layout_content as $block_uuid => $block) {
+        if (($block['data']['module'] == 'custom_search_blocks' && $block['data']['delta'] <= $num_blocks) || ($block['data']['module'] == 'search' && $block['data']['delta'] == 'form')) {
+          // Migrate settings.
+          if ($block['data']['module'] == 'search' && $block['data']['delta'] == 'form') {
+            $varname = 'custom_search_';
+          }
+          else {
+            $varname = 'custom_search_blocks_' . $block['data']['delta'] . '_';
+          }
+          $updated_settings = array(
+            'search_box' => array(
+              'label_visibility'  => update_variable_get($varname . 'label_visibility', TRUE),
+              'label'             => update_variable_get($varname . 'label', t('Search this site')),
+              'text'              => update_variable_get($varname . 'text', ''),
+              'hint_text'         => update_variable_get($varname . 'hint_text', t('Enter the terms you wish to search for.')),
+              'size'              => update_variable_get($varname . 'size', 15),
+              'max_length'        => update_variable_get($varname . 'max_length', 128),
+            ),
+            'content' => array(
+              'selector'  => array(
+                'node_types'        => update_variable_get($varname . 'node_types', array()),
+                'other'             => update_variable_get($varname . 'other', array()),
+                'selector'          => update_variable_get($varname . 'type_selector', 'select'),
+                'label_visibility'  => update_variable_get($varname . 'type_selector_label_visibility', TRUE),
+                'label'             => update_variable_get($varname . 'type_selector_label', t('Search for')),
+                'any'               => array(
+                  'text'      => update_variable_get($varname . 'type_selector_all', t('-Any-')),
+                  'restricts' => update_variable_get($varname . 'any_restricts', FALSE),
+                  'force'     => update_variable_get($varname . 'any_force', FALSE),
+                ),
+              ),
+              'node_types_excluded' => update_variable_get($varname . 'node_types_excluded', array()),
+            ),
+            'searchapi' => array(
+              'page' => update_variable_get($varname . 'search_api_page', 0),
+            ),
+            'criteria' => array(
+              'or' => array(
+                'display' => update_variable_get($varname . 'criteria_or_display', FALSE),
+                'label'   => update_variable_get($varname . 'criteria_or_label', t('Containing any of the words')),
+              ),
+              'phrase' => array(
+                'display' => update_variable_get($varname . 'criteria_phrase_display', FALSE),
+                'label'   => update_variable_get($varname . 'criteria_phrase_label', t('Containing the phrase')),
+              ),
+              'negative' => array(
+                'display' => update_variable_get($varname . 'criteria_negative_display', FALSE),
+                'label'   => update_variable_get($varname . 'criteria_negative_label', t('Containing none of the words')),
+              ),
+            ),
+            'languages' => array(
+              'search_language' => update_variable_get('custom_search_i18n_search_language', 'all'),
+            ),
+            'paths' => array(
+              'selector'          => update_variable_get($varname . 'paths_selector', 'select'),
+              'label_visibility'  => update_variable_get($varname . 'paths_selector_label_visibility', TRUE),
+              'label'             => update_variable_get($varname . 'paths_selector_label', t('Customize your search')),
+              'paths'             => update_variable_get($varname . 'paths', ''),
+              'separator'         => update_variable_get($varname . 'paths_terms_separator', '+'),
+            ),
+            'submit_button' => array(
+              'text'        => update_variable_get($varname . 'submit_text', t('Search')),
+              'image_path'  => update_variable_get($varname . 'image_path', ''),
+            ),
+            'order' => array(
+              'elements' => array(
+                'search_box' => array(
+                  'sort'    => update_variable_get($varname . 'search_box_weight', -1),
+                  'region'  => update_variable_get($varname . 'search_box_region', 'block'),
+                ),
+                'content_types' => array(
+                  'sort'    => update_variable_get($varname . 'content_types_weight', 0),
+                  'region'  => update_variable_get($varname . 'content_types_region', 'block'),
+                ),
+                'criteria_or' => array(
+                  'sort'    => update_variable_get($varname . 'criteria_or_weight', 6),
+                  'region'  => update_variable_get($varname . 'criteria_or_region', 'block'),
+                ),
+                'criteria_phrase' => array(
+                  'sort'    => update_variable_get($varname . 'criteria_phrase_weight', 7),
+                  'region'  => update_variable_get($varname . 'criteria_phrase_region', 'block'),
+                ),
+                'criteria_negative' => array(
+                  'sort'    => update_variable_get($varname . 'criteria_negative_weight', 8),
+                  'region'  => update_variable_get($varname . 'criteria_negative_region', 'block'),
+                ),
+                'paths' => array(
+                  'sort'    => update_variable_get($varname . 'custom_paths_weight', 9),
+                  'region'  => update_variable_get($varname . 'custom_paths_region', 'block'),
+                ),
+                'submit' => array(
+                  'sort'    => update_variable_get($varname . 'submit_button_weight', 10),
+                  'region'  => update_variable_get($varname . 'submit_button_region', 'block'),
+                ),
+              ),
+            ),
+          );
+          // Delete unused variables.
+          update_variable_del($varname . 'label_visibility');
+          update_variable_del($varname . 'label');
+          update_variable_del($varname . 'text');
+          update_variable_del($varname . 'hint_text');
+          update_variable_del($varname . 'size');
+          update_variable_del($varname . 'max_length');
+          update_variable_del($varname . 'node_types');
+          update_variable_del($varname . 'other');
+          update_variable_del($varname . 'type_selector');
+          update_variable_del($varname . 'type_selector_label_visibility');
+          update_variable_del($varname . 'type_selector_label');
+          update_variable_del($varname . 'type_selector_all');
+          update_variable_del($varname . 'any_restricts');
+          update_variable_del($varname . 'any_force');
+          update_variable_del($varname . 'node_types_excluded');
+          update_variable_del($varname . 'search_api_page');
+          update_variable_del($varname . 'criteria_or_display');
+          update_variable_del($varname . 'criteria_or_label');
+          update_variable_del($varname . 'criteria_phrase_display');
+          update_variable_del($varname . 'criteria_phrase_label');
+          update_variable_del($varname . 'criteria_negative_display');
+          update_variable_del($varname . 'criteria_negative_label');
+          update_variable_del($varname . 'paths_selector');
+          update_variable_del($varname . 'paths_selector_label_visibility');
+          update_variable_del($varname . 'paths_selector_label');
+          update_variable_del($varname . 'paths');
+          update_variable_del($varname . 'paths_terms_separator');
+          update_variable_del($varname . 'submit_text');
+          update_variable_del($varname . 'image_path');
+          update_variable_del($varname . 'search_box_weight');
+          update_variable_del($varname . 'search_box_region');
+          update_variable_del($varname . 'content_types_weight');
+          update_variable_del($varname . 'content_types_region');
+          update_variable_del($varname . 'criteria_or_weight');
+          update_variable_del($varname . 'criteria_or_region');
+          update_variable_del($varname . 'criteria_phrase_weight');
+          update_variable_del($varname . 'criteria_phrase_region');
+          update_variable_del($varname . 'criteria_negative_weight');
+          update_variable_del($varname . 'criteria_negative_region');
+          update_variable_del($varname . 'custom_paths_weight');
+          update_variable_del($varname . 'custom_paths_region');
+          update_variable_del($varname . 'submit_button_weight');
+          update_variable_del($varname . 'submit_button_region');
+          // Taxonomy migration.
+          if (module_exists('taxonomy')) {
+            $vocabularies = taxonomy_get_vocabularies();
+            $drupal_machine_names = update_variable_get('custom_search_taxonomy_machine_names', array());
+            $weight = 1;
+            foreach ($vocabularies as $machine_name => $voc) {
+              $vid = $drupal_machine_names[$machine_name];
+              $updated_settings['taxonomy'][$machine_name] = array(
+                'selector'          => update_variable_get($varname . 'voc' . $vid . '_selector', 'disabled'),
+                'depth'             => update_variable_get($varname . 'voc' . $vid . '_selector_depth', 0),
+                'label_visibility'  => update_variable_get($varname . 'voc' . $vid . '_selector_label_visibility', TRUE),
+                'label'             => update_variable_get($varname . 'voc' . $vid . '_selector_label', $voc->name),
+                'any'               => update_variable_get($varname . 'voc' . $vid . '_selector_all', t('-Any-')),
+              );
+              $updated_settings['order']['elements']['vocabulary_' . $machine_name] = array(
+                'sort'    => update_variable_get($varname . 'taxonomy' . $vid . '_weight', $weight++),
+                'region'  => update_variable_get($varname . 'taxonomy' . $vid . '_region', 'block'),
+              );
+              update_variable_del($varname . 'voc' . $vid . '_selector');
+              update_variable_del($varname . 'voc' . $vid . '_selector_depth');
+              update_variable_del($varname . 'voc' . $vid . '_selector_label_visibility');
+              update_variable_del($varname . 'voc' . $vid . '_selector_label');
+              update_variable_del($varname . 'voc' . $vid . '_selector_all');
+              update_variable_del($varname . 'taxonomy' . $vid . '_weight');
+              update_variable_del($varname . 'taxonomy' . $vid . '_region');
+            }
+          }
+          // Saves the settings
+          if ($block['data']['module'] == 'search' && $block['data']['delta'] == 'form') {
+            // If it's the default search block, create a new custom block to replace it.
+            $layout_positions = $layout->get('positions');
+            foreach ($layout_positions as $layout_region => $layout_blocks) {
+              $block_index = array_search($block_uuid, $layout_blocks);
+              if ($block_index !== FALSE) {
+                $new_region = $layout_region;
+                $new_position = $block_index;
+                break;
+              }
+            }
+            $uuid = new Uuid();
+            $new_uuid = $uuid->generate();
+            $layout_content[$new_uuid] = array(
+              'plugin'  => 'custom_search:custom-search',
+              'data'    => array(
+                'module'    => 'custom_search',
+                'delta'     => 'custom-search',
+                'uuid'      => $new_uuid,
+                'settings'  => array(
+                  'block_settings'  => $updated_settings,
+                ),
+              ),
+            );
+            $layout_positions[$new_region][$new_position] = $new_uuid;
+            unset($layout_content[$block_uuid]);
+            $layout->set('positions', $layout_positions);
+          }
+          else {
+            // Update custom block settings.
+            $layout_content[$block_uuid]['data']['settings']['block_settings'] = $updated_settings;
+            $layout_content[$block_uuid]['plugin'] = 'custom_search:custom-search';
+            $layout_content[$block_uuid]['data']['module'] = 'custom_search';
+            $layout_content[$block_uuid]['data']['delta'] = 'custom-search';
+          }
+        }
+        elseif ($block['data']['module'] == 'custom_search_blocks' && $$block['data']['delta'] > $num_blocks) {
+          // It's a unused custom search block, so delete it.
+          unset($layout_content[$block_uuid]);
+          $layout_positions = $layout->get('positions');
+          foreach ($layout_positions as $layout_region => $layout_blocks) {
+            $key = array_search($block_uuid, $layout_blocks);
+            if ($key !== FALSE) {
+              unset($layout_positions[$layout_region][$key]);
+            }
+          }
+          $layout->set('positions.' . $layout_region, $layout_blocks);
+        }
+      }
+      // Save the layout.
+      $layout->set('content', $layout_content);
+      $layout->save();
+    }
+    update_variable_del('custom_search_i18n_search_language');
+    update_variable_del('custom_search_taxonomy_machine_names');
+  }
 }
 
 /**
