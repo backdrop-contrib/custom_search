@@ -342,3 +342,10 @@ function custom_search_update_1001() {
 function custom_search_update_last_removed() {
   return 7103;
 }
+
+/**
+ * Add language neutral to default settings.
+ */
+function custom_search_update_1100() {
+  config_set('custom_search.settings', 'advanced_language_und_display', TRUE);
+}

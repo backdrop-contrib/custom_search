@@ -8,6 +8,7 @@
     "advanced_or_display": true,
     "advanced_phrase_display": true,
     "advanced_negative_display": true,
+    "advanced_language_und_display": true,
     "results_info_type": false,
     "results_info_user": true,
     "results_info_date": true,

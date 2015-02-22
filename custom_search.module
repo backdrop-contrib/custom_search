@@ -972,18 +972,19 @@ function custom_search_form_alter(&$form, &$form_state, $form_id) {
               $language_options[$langcode] = $language->name;
             }
           }
-          if (count($language_options) > 1) {
-            foreach ($language_options as $langcode => $name) {
-              if (!$config->get('advanced_language_' . $langcode . '_display')) {
-                unset($form['advanced']['language']['#options'][$langcode]);
-              } 
-            }
-            if (!count($form['advanced']['language']['#options'])) {
-              unset($form['advanced']['language']['#type']);
-            }
-            else {
-              $form['advanced']['language']['#default_value'] = $search_args['languages'];
-            }
+          // Add language neutral to the list.
+          $language_options['und'] = t('Language Neutral');
+          $form['advanced']['language']['#options']['und'] = t('Language Neutral');
+          foreach ($language_options as $langcode => $name) {
+            if (!$config->get('advanced_language_' . $langcode . '_display')) {
+              unset($form['advanced']['language']['#options'][$langcode]);
+            } 
+          }
+          if (!count($form['advanced']['language']['#options'])) {
+            unset($form['advanced']['language']['#type']);
+          }
+          else {
+            $form['advanced']['language']['#default_value'] = $search_args['languages'];
           }
 
           // Remove unnecessary args from keys.

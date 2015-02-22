@@ -97,21 +97,20 @@ function custom_search_admin_form() {
       $language_options[$langcode] = $language->name;
     }
   }
-  if (count($language_options) > 1) {
-    $form['search_form']['advanced']['languages'] = array(
-      '#type'         => 'fieldset',
-      '#title'        => t('Languages'),
-      '#description'  => t('Select the languages to display on the advanced search form.'),
-      '#collapsible'  => TRUE,
-      '#collapsed'    => TRUE,
+  $language_options['und'] = t('Language neutral');
+  $form['search_form']['advanced']['languages'] = array(
+    '#type'         => 'fieldset',
+    '#title'        => t('Languages'),
+    '#description'  => t('Select the languages to display on the advanced search form.'),
+    '#collapsible'  => TRUE,
+    '#collapsed'    => TRUE,
+  );
+  foreach ($language_options as $langcode => $name) {
+    $form['search_form']['advanced']['languages']['advanced_language_' . $langcode . '_display'] = array(
+      '#type'           => 'checkbox',
+      '#title'          => $name,
+      '#default_value'  => $config->get('advanced_language_' . $langcode . '_display', TRUE),
     );
-    foreach ($language_options as $langcode => $name) {
-      $form['search_form']['advanced']['languages']['advanced_language_' . $langcode . '_display'] = array(
-        '#type'           => 'checkbox',
-        '#title'          => $name,
-        '#default_value'  => $config->get('advanced_language_' . $langcode . '_display', TRUE),
-      );
-    }
   }
 
   $form['results'] = array(
