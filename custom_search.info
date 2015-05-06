@@ -2,8 +2,7 @@ name = Custom Search
 description = Customize the default search, change labels, default texts, ordering, and display content types and taxonomy selectors.
 backdrop = 1.x
 package = Search
-
+type = module
 dependencies[] = search
 dependencies[] = block
-
 configure = admin/config/search/custom_search
