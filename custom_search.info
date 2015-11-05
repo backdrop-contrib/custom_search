@@ -3,6 +3,7 @@ description = Customize the default search, change labels, default texts, orderi
 backdrop = 1.x
 package = Search
 type = module
+version = 1.x-1.0.2
 dependencies[] = search
 dependencies[] = block
 configure = admin/config/search/custom_search
