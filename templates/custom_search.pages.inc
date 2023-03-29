@@ -34,7 +34,7 @@ function custom_search_preprocess_search_results(&$variables) {
         $defined_types = array_filter($defined_types, 'custom_search_filter_array');
       }
       $type_names = node_type_get_names();
-      if (count($defined_types)) {
+      if ($defined_types) {
         foreach ($defined_types as $type) {
           $searchable_node_types[$type] = $type_names[$type];
         } 
