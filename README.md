@@ -71,7 +71,7 @@ complete text.
 
 ## Current Maintainers
 
--   Jerome Danthinne (https://github.com/jdanthinne/)
+-   Seeking maintainers.
 
 ## Credits
 
