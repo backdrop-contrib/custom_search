@@ -6,16 +6,16 @@
  * This behavior is dependent on the tableDrag behavior, since it uses the
  * objects initialized in that behavior to update the row.
  */
-Drupal.behaviors.customSearchSort = {
+Backdrop.behaviors.customSearchSort = {
   attach: function (context, settings) {
     // tableDrag is required and we should be on the blocks admin page.
-    if (typeof Drupal.tableDrag == 'undefined' || typeof Drupal.tableDrag.elements == 'undefined') {
+    if (typeof Backdrop.tableDrag == 'undefined' || typeof Backdrop.tableDrag.elements == 'undefined') {
       return;
     }
 
     var table = $('table#elements');
     // Get the blocks tableDrag object.
-    var tableDrag = Drupal.tableDrag.elements;
+    var tableDrag = Backdrop.tableDrag.elements;
 
     // Add a handler for when a row is swapped, update empty regions.
     tableDrag.row.prototype.onSwap = function (swappedRow) {
@@ -33,7 +33,7 @@ Drupal.behaviors.customSearchSort = {
       // Check whether the newly picked region is available for this block.
       if ($('option[value=' + regionName + ']', regionField).length == 0) {
         // If not, alert the user and keep the block in its old region setting.
-        alert(Drupal.t('The block cannot be placed in this region.'));
+        alert(Backdrop.t('The block cannot be placed in this region.'));
         // Simulate that there was a selected element change, so the row is put
         // back to from where the user tried to drag it.
         regionField.change();
