@@ -29,12 +29,12 @@ function custom_search_preprocess_search_results(&$variables) {
         $keys = backdrop_substr($keys, 0, strpos($keys, 'type:') - 1);
       }
       // Get Custom Search authorized types.
-      $searchable_node_types = array();
+      $searchable_node_types = $defined_types = array();
       if ($defined_types = $config->get('current_node_types')) {
         $defined_types = array_filter($defined_types, 'custom_search_filter_array');
       }
       $type_names = node_type_get_names();
-      if (count($defined_types)) {
+      if ($defined_types) {
         foreach ($defined_types as $type) {
           $searchable_node_types[$type] = $type_names[$type];
         } 
